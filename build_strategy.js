@@ -639,10 +639,16 @@ function endTurn(){
   const prevDay=G.day;
   G.turn++;
   G.day=Math.ceil(G.turn/3);
-  G.moves=G.maxMoves;
-  G.energy=Math.min(G.maxEnergy,G.energy+4);
-  // Daily salary income
+  // Apply weather effects to moves/energy
+  const wx=getWeather();
+  G.moves=Math.max(1,G.maxMoves+(wx.moveBonus||0));
+  G.energy=Math.min(G.maxEnergy,G.energy+4+(wx.energyBonus||0));
+  if(wx.romBonus)G.rel=Math.min(100,G.rel+wx.romBonus);
+  // Daily salary income + new weather
   if(G.day>prevDay){
+    rollWeather();
+    const newWx=getWeather();
+    if(newWx.id!=='sunny')showPhone(newWx.label+' Погода: '+{cloudy:'Пасмурно',rainy:'Дождь! +'+wx.romBonus+'❤️',snowy:'Снег! +'+wx.romBonus+'❤️ но -ход'}[newWx.id]);
     const salary=1500*(G.stats.salary||1)+(G.units.includes('driver')?500:0);
     G.money+=salary;
     showPhone('💰 Зарплата +'+salary.toLocaleString('ru')+'₽ (День '+G.day+')');
@@ -1336,16 +1342,36 @@ function centerOnHero(){
 }
 
 function getDayPhase(){
-  // Returns 0=night, 1=morning, 2=day, 3=evening based on turn within day
   const tod=(G.turn-1)%3;
   return tod; // 0=morning, 1=afternoon, 2=evening
 }
+const WEATHERS=[
+  {id:'sunny',label:'☀️',overlay:null,moveBonus:0,energyBonus:1,romBonus:0},
+  {id:'cloudy',label:'☁️',overlay:'rgba(80,80,120,.08)',moveBonus:0,energyBonus:0,romBonus:0},
+  {id:'rainy',label:'🌧️',overlay:'rgba(30,60,120,.12)',moveBonus:-1,energyBonus:0,romBonus:+5},
+  {id:'snowy',label:'❄️',overlay:'rgba(180,220,255,.1)',moveBonus:-1,energyBonus:-1,romBonus:+8},
+];
+function getWeather(){
+  if(!G.weather)G.weather=0;
+  return WEATHERS[G.weather%WEATHERS.length];
+}
+function rollWeather(){
+  // Change weather randomly each day, weighted toward sunny/cloudy
+  const weights=[4,3,2,1];
+  let total=weights.reduce((a,b)=>a+b,0);
+  let r=Math.floor(Math.random()*total);
+  for(let i=0;i<weights.length;i++){r-=weights[i];if(r<0){G.weather=i;break;}}
+}
 function getDayAmbient(){
   const phase=getDayPhase();
-  // Returns {sky0, sky1, overlay (rgba string), label}
-  if(phase===0)return{sky0:'#080f1c',sky1:'#0a1220',overlay:'rgba(255,120,60,.06)',label:'🌅 Утро'};
-  if(phase===1)return{sky0:'#080812',sky1:'#0d0d20',overlay:null,label:'☀️ День'};
-  return{sky0:'#100810',sky1:'#180810',overlay:'rgba(180,60,20,.09)',label:'🌇 Вечер'};
+  const wx=getWeather();
+  let sky0,sky1,overlay,label;
+  if(phase===0){sky0='#080f1c';sky1='#0a1220';overlay='rgba(255,120,60,.06)';label='🌅 Утро';}
+  else if(phase===1){sky0='#080812';sky1='#0d0d20';overlay=null;label='☀️ День';}
+  else{sky0='#100810';sky1='#180810';overlay='rgba(180,60,20,.09)';label='🌇 Вечер';}
+  // Weather modifies overlay
+  if(wx.overlay)overlay=wx.overlay;
+  return{sky0,sky1,overlay,label:wx.label+' '+label};
 }
 
 function render(){
