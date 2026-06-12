@@ -133,6 +133,7 @@ canvas{display:block;touch-action:none}
   <div class="title">БАЗОВЫЙ МИНИМУМ</div>
   <div class="subtitle">Стратегия · Гексагональная карта</div>
   <div id="tgGreet" style="font-size:11px;color:#ff6b9d;height:16px"></div>
+  <div id="bestResults" style="display:none;font-size:9px;color:#666;text-align:center;max-width:320px;padding:4px 10px;background:rgba(255,215,64,.05);border-radius:8px;border:1px solid #333"></div>
   <div id="charGrid"></div>
   <div style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:320px;margin-top:4px">
     <button class="btn" onclick="startGame('campaign')">📖 Кампания (5 глав)</button>
@@ -1203,6 +1204,7 @@ function triggerWedding(){
   document.getElementById('goScreen').classList.add('active');
   playSFX(rel>=40?'win':'fail');
   setTimeout(()=>spawnParticles(W/2,H/2,rel>=70?'win':'hearts'),300);
+  checkAndSaveBest();
 }
 
 function shareResult(){
@@ -1640,9 +1642,35 @@ function loop(ts){
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 let selectedChar='roman';
+// ── Highscores ────────────────────────────────────────────────────────────────
+function loadBest(){try{return JSON.parse(localStorage.getItem('bazmin_best')||'{}');}catch{return{};}}
+function saveBest(data){try{localStorage.setItem('bazmin_best',JSON.stringify(data));}catch{}}
+function checkAndSaveBest(){
+  const b=loadBest();
+  let changed=false;
+  if(!b.money||G.money>b.money){b.money=G.money;b.moneyChar=G.ch.name;changed=true;}
+  if(!b.rel||G.rel>b.rel){b.rel=G.rel;b.relChar=G.ch.name;changed=true;}
+  if(!b.level||G.level>b.level){b.level=G.level;b.levelChar=G.ch.name;changed=true;}
+  if(!b.day||G.day>b.day){b.day=G.day;b.dayChar=G.ch.name;changed=true;}
+  if(changed)saveBest(b);
+  return b;
+}
+
 function buildCharSelect(){
   const el=document.getElementById('charGrid');el.innerHTML='';
   if(window._tgName)document.getElementById('tgGreet').textContent='Привет, '+window._tgName+'! 👋';
+  // Show best results
+  const b=loadBest();
+  const bel=document.getElementById('bestResults');
+  if(bel){
+    if(b.money||b.rel){
+      const lines=[];
+      if(b.money)lines.push('💰 '+b.money.toLocaleString('ru')+'₽ ('+b.moneyChar+')');
+      if(b.rel)lines.push('❤️ '+b.rel+'% ('+b.relChar+')');
+      if(b.level)lines.push('🆙 Ур.'+b.level+' ('+b.levelChar+')');
+      bel.style.display='block';bel.innerHTML='🏆 Рекорды: '+lines.join(' · ');
+    } else {bel.style.display='none';}
+  }
   Object.entries(CHARS).forEach(([id,ch])=>{
     const s=ch.stat||{};
     const statBar=(label,val,color)=>{
