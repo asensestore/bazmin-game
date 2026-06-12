@@ -1285,7 +1285,19 @@ function endBattle(){
     const moneyGain=win?Math.round(b.score*5):0;
     G.rel=Math.min(100,G.rel+relGain);G.rep=Math.min(100,G.rep+5);
     if(moneyGain)G.money+=moneyGain;
-    document.getElementById('bResultTitle').innerHTML='<span style="color:#69f0ae">💕 Свидание удалось!</span>';
+    // Post-victory girl response based on personality and score
+    const winResponses={
+      romantic:['Это было волшебно... 💕','Ты меня покорил 🌹','Я так рада что мы встретились!'],
+      intellectual:['Ты оказался интереснее чем я думала 📚','Мне понравился наш разговор!','Неожиданно умно. Зачёт.'],
+      adventurous:['Вот это зажгли! Давай ещё! 🏃','Ты не скучный — это уже много!','Мне с тобой весело!'],
+      materialistic:['Ладно... ты знаешь как угодить 💎','Неплохо для начала!','Продолжай в том же духе.'],
+      caring:['Ты такой внимательный... 🌸','Я чувствовала твою заботу!','Ты настоящий.'],
+      status:['Окей, ты прошёл проверку 👑','Мои подписчики одобрят.','Статусно получилось!'],
+      trust:['Я начинаю тебе доверять 🤝','Ты честный. Это редкость.','Хорошее начало.'],
+    };
+    const pResponses=winResponses[b.girl.personality]||['Было приятно!'];
+    const perfTxt=b.score>=80?pResponses[0]:b.score>=40?pResponses[1]:(pResponses[2]||pResponses[0]);
+    document.getElementById('bResultTitle').innerHTML='<span style="color:#69f0ae">💕 '+perfTxt+'</span>';
     document.getElementById('bResultSub').textContent=`+${relGain} к отношениям${moneyGain?' | +'+moneyGain+'₽':''}`;
     haptic('success');playSFX('win');
     spawnParticles(W/2,H/2,'win');
