@@ -178,6 +178,7 @@ const HTML = `
     <div id="movesLeft"></div>
     <div style="display:flex;gap:6px">
       <button onclick="openApt()" style="background:rgba(10,10,25,.9);border:1.5px solid #444;color:#aaa;border-radius:14px;padding:6px 12px;font-size:11px;cursor:pointer">🏠 Квартира</button>
+      <button id="musicBtn" onclick="toggleMusic()" style="background:rgba(10,10,25,.9);border:1.5px solid #444;color:#aaa;border-radius:14px;padding:6px 8px;font-size:14px;cursor:pointer" title="Музыка">🎵</button>
       <button id="endTurnBtn" onclick="endTurn()">⏭ Ход</button>
     </div>
   </div>
@@ -884,6 +885,12 @@ function startBGMusic(){
   // delay first note slightly
   bgNoteTimer=setTimeout(playNote,1000);
 }
+function toggleMusic(){
+  const btn=document.getElementById('musicBtn');
+  if(bgMusic.on){stopBGMusic();if(btn)btn.textContent='🔇';}
+  else{startBGMusic();if(btn)btn.textContent='🎵';}
+}
+
 function stopBGMusic(){
   bgMusic.on=false;
   if(bgNoteTimer)clearTimeout(bgNoteTimer);
@@ -1542,6 +1549,8 @@ function gainXP(amount){
     const boostTxt={energy:'Макс. энергия +1 ⚡',moves:'Макс. ходов +1 ⏰',charisma:'Харизма +1 💬 +5 Реп'}[boost];
     showPhone('🆙 УРОВЕНЬ '+G.level+'! '+boostTxt);
     playSFX('win');spawnParticles(W/2,H/3,'stars');
+    // Level-up banner using day banner
+    showDayBanner('Уровень '+G.level,boostTxt);
   }
   updateHUD();
 }
