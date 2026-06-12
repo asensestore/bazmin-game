@@ -632,6 +632,20 @@ const REVENTS=[
       {text:'Да, хочу поработать над собой!',e:()=>{G.stats.charisma++;G.energy=Math.max(1,G.energy-1);},response:'Отличная тренировка! +1 Харизма, -1 Энергия'},
       {text:'Нет времени, потом',e:()=>{},response:'Ладно, в следующий раз.'},
     ]},
+  {title:'🤝 Встреча с бизнес-партнёром',dialog:true,
+    text:'Партнёр предлагает вложить деньги в его стартап. Рискнёшь?',
+    choices:[
+      {text:'Вкладываю 5000₽ — рискну!',e:()=>{if(G.money>=5000){G.money-=5000;const win=Math.random()<.55;if(win){G.money+=12000;return'+12000₽! Стартап выстрелил! 🎉';}else{return'Стартап провалился. Деньги потеряны 😭';}}else{return'Недостаточно денег...';}},response:'Подписываешь бумаги...'},
+      {text:'Слишком рискованно, откажусь',e:()=>{G.rep=Math.min(100,G.rep+3);},response:'+3 Репутации за осторожность. Иногда лучше не рисковать.'},
+    ]},
+  {title:'🎤 Стендап-шоу',dialog:true,
+    text:'Дружище устроил стендап. Берёшь билет за 700₽?',
+    choices:[
+      {text:'Беру! Повеселимся 🎤',e:()=>{if(G.money>=700){G.money-=700;G.rel=Math.min(100,G.rel+6);G.energy=Math.min(G.maxEnergy,G.energy+2);return'+6❤️ +2⚡ — отличный вечер!';}else{return'Денег нет на билет...';}},response:'В очереди на кассе...'},
+      {text:'Не мой формат',e:()=>{},response:'Дома спокойнее.'},
+    ]},
+  {title:'🏆 Конкурс в соцсетях',dialog:false,
+    e:()=>{const win=Math.random()<.4;if(win){const prize=Math.floor(Math.random()*3+1)*1000;G.money+=prize;G.rep=Math.min(100,G.rep+5);showPhone('Выиграл конкурс! +'+prize+'₽ +5🧠 🏆');playSFX('win');}else{showPhone('Не повезло в конкурсе... Зато опыт!');}}},
   {title:'🎁 Её День Рождения!',dialog:true,
     text:'Алиса намекала... сегодня её день рождения! Срочно!',
     choices:[
@@ -663,6 +677,20 @@ const DISTRICT_EVENTS={
 let evCooldown=0;
 function tryEvent(){
   if(evCooldown>0){evCooldown--;return;}
+  // День Влюблённых — day 14 special event (once per game)
+  if(G.day===14&&!G.storyFlags.valentineDone){
+    G.storyFlags.valentineDone=true;
+    const ev={title:'💝 День Влюблённых!',dialog:true,
+      text:'14 февраля! Сегодня весь город в огне любви. Все женщины восприимчивее. Что будешь делать?',
+      choices:[
+        {text:'Устрою грандиозный сюрприз 🌹',e:()=>{if(G.money>=2000){G.money-=2000;G.rel=Math.min(100,G.rel+25);spawnParticles(W/2,H/2,'hearts');playSFX('win');return'+25❤️! Она в восторге! 💕';}else{return'Не хватает денег на сюрприз...';}},response:'Готовишь план...'},
+        {text:'Напишу стихи и спою серенаду',e:()=>{G.rel=Math.min(100,G.rel+15);G.rep=Math.min(100,G.rep+5);spawnParticles(W/2,H/2,'hearts');return'+15❤️ +5🧠 — романтика зашкаливает!';},response:'Берёшь гитару...'},
+        {text:'Обычный день, не отмечаю',e:()=>{G.rel=Math.max(0,G.rel-10);return'Она запомнит это... -10❤️';},response:'Делаешь вид что не знаешь...'},
+      ]};
+    const mapped=ev.choices.map(c=>({text:c.text,rel:0,pts:0,response:c.response,fn:c.e}));
+    showDialog(ev.title,ev.text,mapped,()=>{updateHUD();render();});
+    evCooldown=6;return;
+  }
   if(Math.random()<.28){
     // 30% chance of district-specific event
     const curDist=getDistrict(G.col,G.row);
