@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Базовый Минимум — изометрическая игра для Telegram">
 <title>БАЗОВЫЙ МИНИМУМ — Isometric Edition</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0a0a12;overflow:hidden;touch-action:none;font-family:'Segoe UI',system-ui,sans-serif;user-select:none}
@@ -117,6 +119,18 @@ canvas{display:block;position:fixed;inset:0}
   <div id="tutText"></div>
 </div>
 <script>
+
+// ===== TELEGRAM WEBAPP =====
+const TG=window.Telegram&&window.Telegram.WebApp;
+if(TG){
+  TG.ready();TG.expand();
+  // Use TG user name if available
+  if(TG.initDataUnsafe&&TG.initDataUnsafe.user){
+    const u=TG.initDataUnsafe.user;
+    window._tgName=u.first_name+(u.last_name?' '+u.last_name:'');
+  }
+}
+function haptic(type){if(TG&&TG.HapticFeedback){try{if(type==='impact')TG.HapticFeedback.impactOccurred('medium');else if(type==='success')TG.HapticFeedback.notificationOccurred('success');else if(type==='error')TG.HapticFeedback.notificationOccurred('error');else if(type==='light')TG.HapticFeedback.impactOccurred('light');}catch(e){}}}
 
 // ===== CANVAS =====
 const c=document.getElementById('c'),X=c.getContext('2d');
@@ -803,8 +817,8 @@ function checkPickup(){
       let pr=l.price;
       if(G.ch.bonus==='discount')pr=~~(pr*.75);
       if(G.priceDiscount&&G.priceDiscount<1)pr=~~(pr*G.priceDiscount);
-      if(pr===0||G.money>=pr){G.p.item=l.id;G.money-=pr;addP(l.wx,l.wy,l.logo,3);sendMPPickup(l.id,l.logo);playSFX('pickup');if(pr>0)addF(`-${pr.toLocaleString('ru')}₽`,'#ffd740');else addF('Free!','#4caf50');G.shake=4;}
-      else{addF('Нет денег! 💸','#f44336');G.shake=6;playSFX('fail');}break;
+      if(pr===0||G.money>=pr){G.p.item=l.id;G.money-=pr;addP(l.wx,l.wy,l.logo,3);sendMPPickup(l.id,l.logo);playSFX('pickup');haptic('light');if(pr>0)addF(`-${pr.toLocaleString('ru')}₽`,'#ffd740');else addF('Free!','#4caf50');G.shake=4;}
+      else{addF('Нет денег! 💸','#f44336');G.shake=6;playSFX('fail');haptic('error');}break;
     }
   }
 }
@@ -818,7 +832,7 @@ function checkDelivery(){
         g.sat=true;g.satAt=Date.now();G.p.item=null;
         const pts=~~(g.request.pts*G.dist.pM*(G.ch.bonus==='points'?G.ch.mult:1));
         G.score+=pts;G.served++;G.relation=Math.min(100,G.relation+5);sendMPDelivered(pts);
-        addP(g.wx,g.wy,'❤️',4);addP(g.wx,g.wy,'✨',2);addF(`+${pts} ⭐`,'#4caf50');G.shake=3;playSFX('deliver');
+        addP(g.wx,g.wy,'❤️',4);addP(g.wx,g.wy,'✨',2);addF(`+${pts} ⭐`,'#4caf50');G.shake=3;playSFX('deliver');haptic('success');
         if(G.mode==='story'&&G.chapter>0)setTimeout(()=>tryDeliveryDialog(g),600);
         setTimeout(()=>{G.girls=G.girls.filter(gg=>gg!==g);if(G.running&&G.girls.filter(gg=>!gg.sat).length<3)spawnGirl();},2500);
       } else {addF('Не то! 🤷','#ff9800');G.relation=Math.max(0,G.relation-2);}
@@ -1092,11 +1106,18 @@ function shareToTg(){
 let selectedChar=null;
 function buildCharSelect(){
   const el=document.getElementById('charSelect');el.innerHTML='';
+  // Greet TG user
+  if(window._tgName){
+    const greeting=document.createElement('div');
+    greeting.style.cssText='color:#ff6b9d;font-size:11px;font-weight:700;text-align:center;margin-bottom:6px;width:100%';
+    greeting.textContent='Привет, '+window._tgName+'! 👋';
+    el.before(greeting);
+  }
   Object.entries(CHARS).forEach(([id,ch])=>{
     const div=document.createElement('div');div.className='charCard';div.id='cc_'+id;
     const bt={discount:'Скидки 25%',car:'Скорость x1.6',time:'+8сек',points:'Очки x2'}[ch.bonus]||ch.bonus;
     div.innerHTML=`<img src="${FD[ch.face]||''}" onerror="this.style.display='none'" alt=""><div class="cn">${ch.name}</div><div class="cs">${ch.money.toLocaleString('ru')}₽<br>${bt}</div>`;
-    div.onclick=()=>{document.querySelectorAll('.charCard').forEach(c=>c.classList.remove('sel'));div.classList.add('sel');selectedChar=id;};
+    div.onclick=()=>{document.querySelectorAll('.charCard').forEach(c=>c.classList.remove('sel'));div.classList.add('sel');selectedChar=id;haptic('light');};
     el.appendChild(div);
   });
 }
