@@ -1311,6 +1311,12 @@ function triggerWedding(){
   document.getElementById('goStats').innerHTML=
     '💰 Денег: '+money.toLocaleString('ru')+'₽ &nbsp;|&nbsp; ❤️ Отношения: '+rel+'%<br>'+
     '🧠 Репутация: '+rep+' &nbsp;|&nbsp; 🏆 День '+G.day+' (ход '+G.turn+')';
+  // Show unlocked achievements
+  const achs=JSON.parse(localStorage.getItem('bazmin_ach')||'[]');
+  if(achs.length){
+    const achEmojis=achs.map(id=>{const a=ACHIEVEMENTS.find(x=>x.id===id);return a?a.emoji:'⭐';}).join('');
+    document.getElementById('goStats').innerHTML+=('<br><span style="font-size:13px">'+achEmojis+'</span> Достижений: '+achs.length+'/'+ACHIEVEMENTS.length);
+  }
   document.getElementById('goScreen').classList.add('active');
   playSFX(rel>=40?'win':'fail');
   setTimeout(()=>spawnParticles(W/2,H/2,rel>=70?'win':'hearts'),300);
