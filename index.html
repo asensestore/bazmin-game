@@ -565,7 +565,7 @@ function endTurn(){
     const salary=1500*(G.stats.salary||1)+(G.units.includes('driver')?500:0);
     G.money+=salary;
     showPhone('💰 Зарплата +'+salary.toLocaleString('ru')+'₽ (День '+G.day+')');
-    haptic('success');playSFX('buy');
+    haptic('success');playSFX('buy');spawnParticles(W/2,H*0.4,'money');
   }
   playSFX('turn');
   if(G.charmBuff>0)G.charmBuff--;
@@ -715,6 +715,7 @@ function hexAction(){
     G.money-=price;
     if(!G.cards.includes(cardId))G.cards.push(cardId);
     showPhone((ALL_CARDS[cardId]?.emoji||'✅')+' '+obj.name+' куплено!');haptic('success');
+    playSFX('buy');spawnParticles(W/2,H*0.7,'money');
   } else if(obj.type==='metro'){
     showMetroMenu();return;
   } else if(obj.type==='gym'){
@@ -919,7 +920,8 @@ function endBattle(){
     if(moneyGain)G.money+=moneyGain;
     document.getElementById('bResultTitle').innerHTML='<span style="color:#69f0ae">💕 Свидание удалось!</span>';
     document.getElementById('bResultSub').textContent=`+${relGain} к отношениям${moneyGain?' | +'+moneyGain+'₽':''}`;
-    haptic('success');
+    haptic('success');playSFX('win');
+    spawnParticles(W/2,H/2,'win');
     if(b.girl.id>=0){const gi=GIRLS.find(g=>g.id===b.girl.id);if(gi)gi.beaten=true;}
   } else {
     G.rep=Math.max(0,G.rep-10);
@@ -1295,6 +1297,8 @@ function render(){
     }
   }
 
+  // Particles overlay
+  updateParticles(ctx);
   renderMinimap();
 }
 
@@ -1403,11 +1407,46 @@ function handleClick(px,py){
   haptic('light');
 }
 
+// ── Particle system ───────────────────────────────────────────────────────────
+let particles=[];
+function addParticle(sx,sy,emoji,vx,vy,life){
+  particles.push({sx,sy,x:sx,y:sy,emoji,vx,vy,life,maxLife:life,size:16+Math.random()*8});
+}
+function spawnParticles(sx,sy,type){
+  const sets={
+    hearts:['❤️','💕','💖','💗'],
+    money:['💰','💵','💸','✨'],
+    stars:['⭐','✨','🌟','💫'],
+    win:['🎉','🎊','⭐','💖','✨'],
+    fail:['💔','😤','💸'],
+  };
+  const emojis=sets[type]||sets.stars;
+  const count=type==='win'?8:5;
+  for(let i=0;i<count;i++){
+    const angle=((i/count)*Math.PI*2)+(Math.random()-.5)*.5;
+    const spd=1.5+Math.random()*2.5;
+    addParticle(sx,sy,emojis[Math.floor(Math.random()*emojis.length)],
+      Math.cos(angle)*spd,Math.sin(angle)*spd-2,40+Math.random()*20);
+  }
+}
+function updateParticles(ctx){
+  particles=particles.filter(p=>{
+    p.life--;if(p.life<=0)return false;
+    p.x+=p.vx;p.y+=p.vy;p.vy+=0.06; // slight gravity
+    const alpha=Math.min(1,p.life/p.maxLife*2);
+    ctx.globalAlpha=alpha;
+    ctx.font=p.size+'px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(p.emoji,p.x,p.y);
+    ctx.globalAlpha=1;
+    return true;
+  });
+}
+
 // ── Ambient loop ──────────────────────────────────────────────────────────────
 let lastRender=0;
 function loop(ts){
   requestAnimationFrame(loop);
-  if(ts-lastRender>100){lastRender=ts;if(G.col||G.col===0)render();}
+  if(ts-lastRender>60){lastRender=ts;if(G.col||G.col===0)render();}
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
