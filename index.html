@@ -503,12 +503,18 @@ function initG(charId){
 }
 
 function revealFog(col,row,radius){
+  let newHexes=0;
   for(let r=row-radius;r<=row+radius;r++){
     for(let c=col-radius;c<=col+radius;c++){
       if(c<0||c>=COLS||r<0||r>=ROWS)continue;
-      if(hexDist(col,row,c,r)<=radius){G.fog.add(hexKey(c,r));G.explored.add(hexKey(c,r));}
+      if(hexDist(col,row,c,r)<=radius){
+        const k=hexKey(c,r);
+        if(!G.explored.has(k))newHexes++;
+        G.fog.add(k);G.explored.add(k);
+      }
     }
   }
+  if(newHexes>0&&G.level)gainXP(newHexes);
 }
 
 // ── Random events ─────────────────────────────────────────────────────────────
@@ -741,7 +747,7 @@ function hexAction(){
     G.money-=price;
     if(!G.cards.includes(cardId))G.cards.push(cardId);
     showPhone((ALL_CARDS[cardId]?.emoji||'✅')+' '+obj.name+' куплено!');haptic('success');
-    playSFX('buy');spawnParticles(W/2,H*0.7,'money');
+    playSFX('buy');spawnParticles(W/2,H*0.7,'money');gainXP(10);
   } else if(obj.type==='metro'){
     showMetroMenu();return;
   } else if(obj.type==='gym'){
@@ -948,6 +954,7 @@ function endBattle(){
     document.getElementById('bResultSub').textContent=`+${relGain} к отношениям${moneyGain?' | +'+moneyGain+'₽':''}`;
     haptic('success');playSFX('win');
     spawnParticles(W/2,H/2,'win');
+    gainXP(20+b.score);
     if(b.girl.id>=0){const gi=GIRLS.find(g=>g.id===b.girl.id);if(gi)gi.beaten=true;}
   } else {
     G.rep=Math.max(0,G.rep-10);
@@ -1154,13 +1161,34 @@ function showDialog(charName,text,choices,cb){
   });
 }
 
+// ── XP & Level up ─────────────────────────────────────────────────────────────
+function xpToNextLevel(lv){return lv*80+80;}
+function gainXP(amount){
+  if(!G.level)G.level=1;if(!G.xp)G.xp=0;
+  G.xp+=amount;
+  const needed=xpToNextLevel(G.level);
+  if(G.xp>=needed){
+    G.xp-=needed;G.level++;
+    // Level up bonus: alternating stat boosts
+    const boost=(G.level%3===0)?'energy':(G.level%3===1)?'moves':'charisma';
+    if(boost==='energy'){G.maxEnergy++;G.energy=G.maxEnergy;}
+    else if(boost==='moves'){G.maxMoves++;G.moves=Math.min(G.moves+1,G.maxMoves);}
+    else{G.stats.charisma++;G.rep=Math.min(100,G.rep+5);}
+    const boostTxt={energy:'Макс. энергия +1 ⚡',moves:'Макс. ходов +1 ⏰',charisma:'Харизма +1 💬 +5 Реп'}[boost];
+    showPhone('🆙 УРОВЕНЬ '+G.level+'! '+boostTxt);
+    playSFX('win');spawnParticles(W/2,H/3,'stars');
+  }
+  updateHUD();
+}
+
 // ── HUD ───────────────────────────────────────────────────────────────────────
 function updateHUD(){
   document.getElementById('hMoney').textContent='💰 '+G.money.toLocaleString('ru')+'₽';
   document.getElementById('hEnergy').textContent='💪 '+G.energy+'/'+G.maxEnergy;
   document.getElementById('hRel').textContent='❤️ '+G.rel;
   document.getElementById('hRep').textContent='🧠 '+G.rep;
-  document.getElementById('turnLabel').textContent='День '+G.day+' · Ход '+G.turn;
+  const xpNeed=xpToNextLevel(G.level||1);
+  document.getElementById('turnLabel').textContent='Ур.'+G.level+' ✨'+(G.xp||0)+'/'+xpNeed+' · День '+G.day;
   const mv=G.moves;
   document.getElementById('movesLeft').textContent=mv>0?'⏰ Ходов: '+mv:'Ходов нет';
   // District label
