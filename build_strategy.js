@@ -153,6 +153,13 @@ const HTML = `
     <span class="hstat" id="hRel">❤️ 0</span>
     <span class="hstat" id="hRep">🧠 50</span>
   </div>
+  <div style="display:flex;align-items:center;gap:6px;padding:3px 8px 3px">
+    <span id="hudLvl" style="font-size:9px;color:#ffd740;font-weight:700;min-width:30px">Ур.1</span>
+    <div style="flex:1;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden">
+      <div id="xpBar" style="height:100%;background:linear-gradient(90deg,#ffd740,#ff9800);border-radius:2px;width:0%;transition:.4s"></div>
+    </div>
+    <span id="hudXpLbl" style="font-size:8px;color:#888">0/80</span>
+  </div>
 </div>
 <div id="distLabel"></div>
 <div id="turnLabel"></div>
@@ -1462,8 +1469,12 @@ function updateHUD(){
   document.getElementById('hRel').textContent='❤️ '+G.rel;
   document.getElementById('hRep').textContent='🧠 '+G.rep;
   const xpNeed=xpToNextLevel(G.level||1);
+  const xpPct=Math.min(100,Math.round(((G.xp||0)/xpNeed)*100));
+  const lvlEl=document.getElementById('hudLvl');if(lvlEl)lvlEl.textContent='Ур.'+(G.level||1);
+  const xpBarEl=document.getElementById('xpBar');if(xpBarEl)xpBarEl.style.width=xpPct+'%';
+  const xpLbl=document.getElementById('hudXpLbl');if(xpLbl)xpLbl.textContent=(G.xp||0)+'/'+xpNeed;
   const amb=getDayAmbient();
-  document.getElementById('turnLabel').textContent='Ур.'+G.level+' ✨'+(G.xp||0)+'/'+xpNeed+' · '+amb.label+' '+G.day+' дн.';
+  document.getElementById('turnLabel').textContent=amb.label+' · День '+G.day;
   const mv=G.moves;
   document.getElementById('movesLeft').textContent=mv>0?'⏰ Ходов: '+mv:'Ходов нет';
   // District label
