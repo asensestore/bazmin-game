@@ -544,7 +544,7 @@ function initG(charId){
     charmBuff:0,looksBuff:0,
     discountTimer:0,energyBuff:0,
     mode:'free',chapter:0,storyFlags:{},
-    distStatus:{},
+    distStatus:{patriki:true}, // start in patriki, no bonus
   };
   revealFog(5,4,3);
 }
@@ -710,6 +710,16 @@ function moveHeroTo(col,row){
   const end=hexCenter(col,row);
   heroAnim={active:true,sx:start.x,sy:start.y,ex:end.x,ey:end.y,t:0};
   revealFog(col,row,3);
+  // First district visit bonus
+  const dist=getDistrict(col,row);
+  if(!G.distStatus[dist]){
+    G.distStatus[dist]=true;
+    const distNames={patriki:'Патрики 🥂',krasnogorsk:'Красногорск 👑',mytishi:'Мытищи 🏚',ramenki:'Раменки 🏢'};
+    const bonus=dist==='krasnogorsk'?3000:1500;
+    G.money+=bonus;gainXP(30);
+    showPhone('🗺️ Первый визит: '+distNames[dist]+'! +'+bonus+'₽ +30XP');
+    playSFX('event');spawnParticles(W/2,H/2,'stars');
+  }
   selectedHex=null;reachSet=null;
   updateHUD();playSFX('move');
   // Check if landing on girl, тёща, or NPC
