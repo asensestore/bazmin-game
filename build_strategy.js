@@ -8,8 +8,10 @@ body{background:#0a0a14;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-seri
 canvas{display:block;touch-action:none}
 .screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(5,5,15,.97);z-index:10;padding:16px;gap:12px}
 .screen.active{display:flex}
-.title{font-size:22px;font-weight:900;color:#ff6b9d;text-align:center;letter-spacing:2px;text-shadow:0 0 20px #ff6b9d}
-.subtitle{font-size:11px;color:#666;text-align:center;letter-spacing:4px;text-transform:uppercase}
+@keyframes glow{0%,100%{text-shadow:0 0 20px #ff6b9d,0 0 40px #ff6b9d44}50%{text-shadow:0 0 30px #ff6b9d,0 0 60px #ff6b9d88}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.title{font-size:22px;font-weight:900;color:#ff6b9d;text-align:center;letter-spacing:2px;animation:glow 3s ease-in-out infinite}
+.subtitle{font-size:11px;color:#666;text-align:center;letter-spacing:4px;text-transform:uppercase;animation:fadeUp .6s ease-out}
 .btn{background:transparent;border:1.5px solid #ff6b9d;color:#ff6b9d;padding:10px 28px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;transition:.2s;letter-spacing:1px}
 .btn:hover,.btn:active{background:#ff6b9d22}
 .btn.green{border-color:#69f0ae;color:#69f0ae}
