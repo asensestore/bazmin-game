@@ -972,8 +972,12 @@ function updateBattleHUD(){
   document.getElementById('bRound').textContent='Раунд '+(b.round+1)+'/5';
   const hPct=Math.max(0,b.heroHP/b.maxHeroHP*100);
   const gPct=Math.max(0,b.girlHP/b.maxGirlHP*100);
-  document.getElementById('bHPHeroFill').style.width=hPct+'%';
-  document.getElementById('bHPGirlFill').style.width=gPct+'%';
+  const hBar=document.getElementById('bHPHeroFill');
+  hBar.style.width=hPct+'%';
+  hBar.style.background=hPct>50?'linear-gradient(90deg,#ff6b9d,#ff4081)':hPct>25?'linear-gradient(90deg,#ffa726,#ff6f00)':'linear-gradient(90deg,#f44336,#b71c1c)';
+  const gBar=document.getElementById('bHPGirlFill');
+  gBar.style.width=gPct+'%';
+  gBar.style.background=gPct>50?'linear-gradient(90deg,#f44336,#b71c1c)':gPct>25?'linear-gradient(90deg,#ff8f00,#f57f17)':'linear-gradient(90deg,#8bc34a,#558b2f)';
   document.getElementById('bHPHeroLbl').textContent='Твоё обаяние: '+Math.max(0,b.heroHP);
   document.getElementById('bHPGirlLbl').textContent=(b.girl.name+': ')+Math.max(0,b.girlHP);
   // Render cards
@@ -1317,8 +1321,8 @@ function updateHUD(){
   document.getElementById('hRel').textContent='❤️ '+G.rel;
   document.getElementById('hRep').textContent='🧠 '+G.rep;
   const xpNeed=xpToNextLevel(G.level||1);
-  const dayPhaseLabel=getDayAmbient?getDayAmbient().label:'';
-  document.getElementById('turnLabel').textContent='Ур.'+G.level+' ✨'+(G.xp||0)+'/'+xpNeed+' · '+dayPhaseLabel+' День '+G.day;
+  const amb=getDayAmbient();
+  document.getElementById('turnLabel').textContent='Ур.'+G.level+' ✨'+(G.xp||0)+'/'+xpNeed+' · '+amb.label+' '+G.day+' дн.';
   const mv=G.moves;
   document.getElementById('movesLeft').textContent=mv>0?'⏰ Ходов: '+mv:'Ходов нет';
   // District label
