@@ -19,11 +19,18 @@ canvas{display:block;touch-action:none}
 .btn.dim{border-color:#444;color:#666}
 /* Character select */
 #charGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:100%;max-width:320px}
-.charCard{background:#111120;border:1.5px solid #333;border-radius:14px;padding:12px;cursor:pointer;transition:.2s;display:flex;flex-direction:column;align-items:center;gap:6px}
+.charCard{background:#111120;border:1.5px solid #333;border-radius:14px;padding:12px;cursor:pointer;transition:.2s;display:flex;flex-direction:column;align-items:center;gap:4px}
 .charCard:hover,.charCard.sel{border-color:#ff6b9d;background:#ff6b9d11}
 .charCard img{width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid #333}
 .charCard .cn{font-size:13px;font-weight:700;color:#fff}
-.charCard .cs{font-size:10px;color:#aaa;text-align:center}
+.charCard .cs{font-size:9px;color:#aaa;text-align:center}
+.statBar{width:100%;height:4px;background:#1e1e2e;border-radius:2px;overflow:hidden;margin:1px 0}
+.statBar span{display:block;height:100%;border-radius:2px;transition:.4s}
+/* Tutorial overlay */
+#tutScreen{position:fixed;inset:0;background:rgba(5,5,15,.97);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:20px;gap:10px;overflow-y:auto}
+.tutRow{display:flex;align-items:center;gap:10px;width:100%;max-width:320px;padding:8px 0;border-bottom:1px solid #1a1a2a}
+.tutEmoji{font-size:24px;min-width:32px;text-align:center}
+.tutTxt{font-size:11px;color:#ccc;line-height:1.5}
 /* HUD */
 #hud{position:fixed;top:0;left:0;right:0;display:none;flex-direction:column;z-index:20;pointer-events:none}
 #hudTop{display:flex;gap:6px;padding:8px 10px;background:linear-gradient(180deg,rgba(5,5,15,.95),transparent);align-items:center;flex-wrap:wrap}
@@ -103,6 +110,20 @@ const HTML = `
 <canvas id="c"></canvas>
 <canvas id="mm"></canvas>
 
+<!-- TUTORIAL SCREEN -->
+<div id="tutScreen">
+  <div style="font-size:18px;font-weight:900;color:#ff6b9d;letter-spacing:2px;margin-bottom:4px">КАК ИГРАТЬ</div>
+  <div class="tutRow"><div class="tutEmoji">🗺️</div><div class="tutTxt"><b>Карта</b> — гексагональная. Нажми на гекс рядом чтобы переместиться. Туман войны открывается при движении.</div></div>
+  <div class="tutRow"><div class="tutEmoji">⏭</div><div class="tutTxt"><b>Конец хода</b> — пополняет ходы и энергию. Каждые 3 хода — новый день, начисляется зарплата.</div></div>
+  <div class="tutRow"><div class="tutEmoji">👩</div><div class="tutTxt"><b>Девушки</b> ходят по карте. Наступи на них — начнётся свидание-битва с карточками!</div></div>
+  <div class="tutRow"><div class="tutEmoji">🃏</div><div class="tutTxt"><b>Карточки</b> — покупай в магазинах. Каждая карта имеет силу и тип. Бей по слабостям противника.</div></div>
+  <div class="tutRow"><div class="tutEmoji">🏪</div><div class="tutTxt"><b>Магазины</b> — нажми на здание, затем кнопку. Доступны магазины, рестораны, метро и спецобъекты.</div></div>
+  <div class="tutRow"><div class="tutEmoji">🚇</div><div class="tutTxt"><b>Метро</b> — телепортирует в другой район. Незаменимо для быстрого перемещения по карте.</div></div>
+  <div class="tutRow"><div class="tutEmoji">🎲</div><div class="tutTxt"><b>Случайные события</b> каждый ход! Выбирай варианты мудро — они влияют на отношения и репутацию.</div></div>
+  <div class="tutRow"><div class="tutEmoji">👩‍👧</div><div class="tutTxt"><b>Тёща — финальный босс</b> в Красногорске. Победи её в битве чтобы получить благословение на свадьбу!</div></div>
+  <button class="btn" onclick="document.getElementById('tutScreen').style.display='none'" style="margin-top:12px">Понял! Играть 🎮</button>
+</div>
+
 <!-- START SCREEN -->
 <div id="startScreen" class="screen active">
   <div class="title">БАЗОВЫЙ МИНИМУМ</div>
@@ -112,6 +133,7 @@ const HTML = `
   <div style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:320px;margin-top:4px">
     <button class="btn" onclick="startGame('campaign')">📖 Кампания (5 глав)</button>
     <button class="btn green" onclick="startGame('free')">🗺 Свободная игра</button>
+    <button class="btn" onclick="document.getElementById('tutScreen').style.display='flex'" style="border-color:#555;color:#888;font-size:11px;padding:7px 16px">❓ Как играть</button>
   </div>
 </div>
 
@@ -1453,8 +1475,13 @@ function buildCharSelect(){
   const el=document.getElementById('charGrid');el.innerHTML='';
   if(window._tgName)document.getElementById('tgGreet').textContent='Привет, '+window._tgName+'! 👋';
   Object.entries(CHARS).forEach(([id,ch])=>{
+    const s=ch.stat||{};
+    const statBar=(label,val,color)=>{
+      const pct=Math.round(val/5*100);
+      return \`<div style="display:flex;align-items:center;gap:4px;width:100%"><span style="font-size:8px;color:#666;min-width:30px">\${label}</span><div class="statBar" style="flex:1"><span style="width:\${pct}%;background:\${color}"></span></div></div>\`;
+    };
     const div=document.createElement('div');div.className='charCard'+(id===selectedChar?' sel':'');
-    div.innerHTML=\`<img src="\${FD[ch.face]||''}" onerror="this.style.display='none'" alt=""><div class="cn">\${ch.name}</div><div class="cs">\${ch.money.toLocaleString('ru')}₽<br>\${ch.bonusDesc}</div>\`;
+    div.innerHTML=\`<img src="\${FD[ch.face]||''}" onerror="this.style.display='none'" alt=""><div class="cn">\${ch.name}</div><div class="cs">\${ch.money.toLocaleString('ru')}₽</div>\${statBar('💰',s.salary||1,'#4fc3f7')}\${statBar('💬',s.charisma||1,'#ff6b9d')}\${statBar('👀',s.looks||1,'#ffb74d')}<div class="cs" style="margin-top:2px">\${ch.bonusDesc}</div>\`;
     div.onclick=()=>{document.querySelectorAll('.charCard').forEach(c2=>c2.classList.remove('sel'));div.classList.add('sel');selectedChar=id;haptic('light');};
     el.appendChild(div);
   });
