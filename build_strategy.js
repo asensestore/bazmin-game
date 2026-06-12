@@ -807,6 +807,7 @@ function endTurn(){
       '🏆 Общий счёт: '+score.toLocaleString('ru');
     document.getElementById('goScreen').classList.add('active');
     playSFX('win');spawnParticles(W/2,H/2,'win');
+    stopBGMusic();
     checkAndSaveBest();
   }
 }
@@ -826,6 +827,45 @@ function playSFX(type){
     else if(type==='fail'){o.type='sawtooth';o.frequency.setValueAtTime(300,now);o.frequency.exponentialRampToValueAtTime(80,now+.3);g.gain.setValueAtTime(.1,now);g.gain.exponentialRampToValueAtTime(.001,now+.35);o.start(now);o.stop(now+.35);}
     else if(type==='event'){o.type='sine';o.frequency.setValueAtTime(660,now);o.frequency.setValueAtTime(440,now+.1);g.gain.setValueAtTime(.1,now);g.gain.exponentialRampToValueAtTime(.001,now+.2);o.start(now);o.stop(now+.2);}
   }catch(e){}
+}
+
+// ── Ambient music ─────────────────────────────────────────────────────────────
+let bgMusic={node:null,gain:null,on:false};
+const AMBIENT_NOTES=[220,261,294,330,349,392,440,494]; // A minor scale
+let bgNoteIdx=0,bgNoteTimer=null;
+function startBGMusic(){
+  if(bgMusic.on)return;
+  const ac=getAC();if(!ac)return;
+  bgMusic.on=true;
+  bgMusic.gain=ac.createGain();
+  bgMusic.gain.gain.setValueAtTime(0,ac.currentTime);
+  bgMusic.gain.gain.linearRampToValueAtTime(0.04,ac.currentTime+2);
+  bgMusic.gain.connect(ac.destination);
+  function playNote(){
+    if(!bgMusic.on||!bgMusic.gain)return;
+    try{
+      const o=ac.createOscillator();const g2=ac.createGain();
+      o.connect(g2);g2.connect(bgMusic.gain);
+      const note=AMBIENT_NOTES[bgNoteIdx%AMBIENT_NOTES.length];
+      bgNoteIdx++;
+      const oct=Math.random()<.3?2:1;
+      o.type='sine';o.frequency.value=note*oct;
+      const dur=1.8+Math.random()*1.2;
+      const now2=ac.currentTime;
+      g2.gain.setValueAtTime(0,now2);
+      g2.gain.linearRampToValueAtTime(.6,now2+.2);
+      g2.gain.linearRampToValueAtTime(0,now2+dur);
+      o.start(now2);o.stop(now2+dur+.1);
+    }catch(e){}
+    bgNoteTimer=setTimeout(playNote,(1200+Math.random()*800));
+  }
+  // delay first note slightly
+  bgNoteTimer=setTimeout(playNote,1000);
+}
+function stopBGMusic(){
+  bgMusic.on=false;
+  if(bgNoteTimer)clearTimeout(bgNoteTimer);
+  if(bgMusic.gain){try{bgMusic.gain.gain.setValueAtTime(bgMusic.gain.gain.value,getAC().currentTime);bgMusic.gain.gain.linearRampToValueAtTime(0,getAC().currentTime+1);}catch(e){}}
 }
 
 // ── Hero animation ─────────────────────────────────────────────────────────────
@@ -1414,6 +1454,7 @@ function triggerWedding(){
   document.getElementById('goScreen').classList.add('active');
   playSFX(rel>=40?'win':'fail');
   setTimeout(()=>spawnParticles(W/2,H/2,rel>=70?'win':'hearts'),300);
+  stopBGMusic();
   checkAndSaveBest();
   setTimeout(()=>checkAchievements(),600);
 }
@@ -1973,6 +2014,7 @@ function startGame(mode){
   centerOnHero();updateHUD();render();
   if(mode==='campaign')setTimeout(()=>checkChapter(),1000);
   showPhone('Добро пожаловать в Базовый Минимум! 🗺 Тапни на гексе чтобы ходить.');
+  setTimeout(startBGMusic,500);
   requestAnimationFrame(loop);
 }
 window.addEventListener('resize',()=>{if(G.col||G.col===0){W=c.width=window.innerWidth;H=c.height=window.innerHeight;centerOnHero();render();}});
