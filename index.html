@@ -669,9 +669,21 @@ function drawHuman(sx,sy,faceId,bodyCol,hairCol,isGirl,walkT,sz,emotion,item){
     X.save();X.beginPath();X.arc(hx,hy,headR-.5,0,Math.PI*2);X.clip();
     X.drawImage(FI[faceId],hx-headR,hy-headR,headR*2,headR*2);X.restore();
   } else {
+    // Eyes
     X.fillStyle='#333';X.beginPath();X.arc(hx-2.5*s,hy-1*s,1.2*s,0,Math.PI*2);X.fill();
     X.beginPath();X.arc(hx+2.5*s,hy-1*s,1.2*s,0,Math.PI*2);X.fill();
-    X.strokeStyle='#333';X.lineWidth=.8*s;X.beginPath();X.arc(hx,hy+2*s,1.5*s,0,Math.PI,false);X.stroke();
+    // Eye shine
+    X.fillStyle='rgba(255,255,255,.7)';X.beginPath();X.arc(hx-2*s,hy-1.5*s,.5*s,0,Math.PI*2);X.fill();
+    X.beginPath();X.arc(hx+3*s,hy-1.5*s,.5*s,0,Math.PI*2);X.fill();
+    // Eyebrows
+    X.strokeStyle='#5d4037';X.lineWidth=.9*s;X.lineCap='round';
+    X.beginPath();X.moveTo(hx-4*s,hy-3.5*s);X.lineTo(hx-1.2*s,hy-4*s);X.stroke();
+    X.beginPath();X.moveTo(hx+1.2*s,hy-4*s);X.lineTo(hx+4*s,hy-3.5*s);X.stroke();
+    // Nose
+    X.strokeStyle='rgba(180,120,80,.5)';X.lineWidth=.7*s;
+    X.beginPath();X.moveTo(hx,hy);X.lineTo(hx-1.2*s,hy+1.5*s);X.lineTo(hx+1.2*s,hy+1.5*s);X.stroke();
+    // Mouth
+    X.strokeStyle='#c0392b';X.lineWidth=.8*s;X.beginPath();X.arc(hx,hy+2*s,1.5*s,0,Math.PI,false);X.stroke();
   }
   if(emotion){const et=Date.now()/300;X.font=`${10*s}px serif`;X.textAlign='center';X.fillText(emotion,hx,hy-headR-7*s-Math.abs(Math.sin(et))*2);}
   if(item){const it=Math.sin(Date.now()/200)*2;X.font=`${14*s}px serif`;X.textAlign='center';X.fillText(item,hx,hy-headR-13*s+it);}
@@ -721,6 +733,17 @@ function drawGirl(g){
   const{sx,sy}=wToS(g.wx,g.wy);
   const distToP=Math.hypot(g.wx-G.p.wx,g.wy-G.p.wy);
   g.walkT=distToP<180?g.walkT+.02:0;
+  // Delivery zone pulse when carrying correct item
+  if(!g.sat&&G.p.item&&g.request&&g.request.need===G.p.item){
+    const pulse=(Math.sin(Date.now()/250)+1)*.5;
+    const rad=32+pulse*10;
+    const grd=X.createRadialGradient(sx,sy,0,sx,sy,rad);
+    grd.addColorStop(0,`rgba(255,107,157,${.4*pulse})`);
+    grd.addColorStop(1,'transparent');
+    X.fillStyle=grd;X.fillRect(sx-rad,sy-rad,rad*2,rad*2);
+    X.strokeStyle=`rgba(255,107,157,${.6+pulse*.4})`;X.lineWidth=2;
+    X.beginPath();X.arc(sx,sy,20+pulse*6,0,Math.PI*2);X.stroke();
+  }
   let emo=null;
   if(g.sat){const age=(Date.now()-g.satAt)/1000;emo=age<1.5?'😍':age<2.5?'❤️':null;}
   else if(g.tl<5)emo='😤';else if(g.tl<10)emo='😟';
@@ -1061,6 +1084,13 @@ function loop(ts){
   if(isDay){glowGrd.addColorStop(0,`rgba(255,240,150,${sky.a*.25})`);glowGrd.addColorStop(1,'transparent');}
   else{glowGrd.addColorStop(0,`rgba(180,180,255,${(.5-sky.a)*0.4})`);glowGrd.addColorStop(1,'transparent');}
   X.fillStyle=glowGrd;X.fillRect(glowX-120,glowY-120,240,240);
+  // Stars at night
+  if(!isDay){
+    const starAmt=(.5-sky.a)*2;
+    if(!G._stars){G._stars=Array.from({length:60},()=>({x:Math.random()*W,y:Math.random()*H*.55,r:.5+Math.random()*1.2,ph:Math.random()*Math.PI*2}));}
+    G._stars.forEach(st=>{const blink=(.7+Math.sin(Date.now()/700+st.ph)*.3)*starAmt;X.globalAlpha=Math.min(1,blink);X.fillStyle='#e8eaf6';X.beginPath();X.arc(st.x,st.y,st.r,0,Math.PI*2);X.fill();});
+    X.globalAlpha=1;
+  }
 
   // Apply screen shake
   const shkX=G.shake>0?R(-G.shake,G.shake):0;
