@@ -1333,6 +1333,9 @@ const ACHIEVEMENTS=[
   {id:'engaged',name:'Сделал предложение',emoji:'💍',check:()=>G.storyFlags&&G.storyFlags.engaged},
   {id:'tyoshcha',name:'Герой семьи',emoji:'👩‍👧',check:()=>G.storyFlags&&G.storyFlags.tyoshchaDefeated},
   {id:'ideal',name:'Идеальный муж',emoji:'💎',check:()=>G.storyFlags&&G.storyFlags.weddingTriggered&&G.rel>=70&&G.rep>=60&&G.money>=5000},
+  {id:'veteran',name:'Ветеран',emoji:'🎖',check:()=>(G.day||1)>=20},
+  {id:'collector',name:'Коллекционер',emoji:'🃏',check:()=>[...new Set(G.cards||[])].length>=8},
+  {id:'valentines',name:'День Влюблённых',emoji:'💝',check:()=>G.storyFlags&&G.storyFlags.valentineDone},
 ];
 function checkAchievements(){
   const unlocked=JSON.parse(localStorage.getItem('bazmin_ach')||'[]');
