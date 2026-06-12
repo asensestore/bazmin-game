@@ -1268,7 +1268,8 @@ function updateHUD(){
   document.getElementById('hRel').textContent='❤️ '+G.rel;
   document.getElementById('hRep').textContent='🧠 '+G.rep;
   const xpNeed=xpToNextLevel(G.level||1);
-  document.getElementById('turnLabel').textContent='Ур.'+G.level+' ✨'+(G.xp||0)+'/'+xpNeed+' · День '+G.day;
+  const dayPhaseLabel=getDayAmbient?getDayAmbient().label:'';
+  document.getElementById('turnLabel').textContent='Ур.'+G.level+' ✨'+(G.xp||0)+'/'+xpNeed+' · '+dayPhaseLabel+' День '+G.day;
   const mv=G.moves;
   document.getElementById('movesLeft').textContent=mv>0?'⏰ Ходов: '+mv:'Ходов нет';
   // District label
@@ -1293,12 +1294,26 @@ function centerOnHero(){
   cam.x=W/2-x;cam.y=H/2-y-40;
 }
 
+function getDayPhase(){
+  // Returns 0=night, 1=morning, 2=day, 3=evening based on turn within day
+  const tod=(G.turn-1)%3;
+  return tod; // 0=morning, 1=afternoon, 2=evening
+}
+function getDayAmbient(){
+  const phase=getDayPhase();
+  // Returns {sky0, sky1, overlay (rgba string), label}
+  if(phase===0)return{sky0:'#080f1c',sky1:'#0a1220',overlay:'rgba(255,120,60,.06)',label:'🌅 Утро'};
+  if(phase===1)return{sky0:'#080812',sky1:'#0d0d20',overlay:null,label:'☀️ День'};
+  return{sky0:'#100810',sky1:'#180810',overlay:'rgba(180,60,20,.09)',label:'🌇 Вечер'};
+}
+
 function render(){
   if(!G.col&&G.col!==0)return;
   ctx.clearRect(0,0,W,H);
-  // Sky
+  // Sky with day/night gradient
+  const amb=getDayAmbient();
   const skgrd=ctx.createLinearGradient(0,0,0,H);
-  skgrd.addColorStop(0,'#080812');skgrd.addColorStop(1,'#0d0d20');
+  skgrd.addColorStop(0,amb.sky0);skgrd.addColorStop(1,amb.sky1);
   ctx.fillStyle=skgrd;ctx.fillRect(0,0,W,H);
 
   // Draw all hexes
@@ -1391,6 +1406,9 @@ function render(){
     const pulse=(Math.sin(Date.now()/300)+1)*.5;
     drawHex(ctx,sx,sy,HSZ-1,'rgba(255,215,64,.15)',`rgba(255,215,64,${.5+pulse*.5})`,1);
   }
+
+  // Day/night ambient overlay (after hex render, before characters)
+  {const amb2=getDayAmbient();if(amb2.overlay){ctx.fillStyle=amb2.overlay;ctx.fillRect(0,0,W,H);}}
 
   // Girls
   GIRLS.forEach(gi=>{
