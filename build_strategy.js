@@ -527,8 +527,9 @@ function endTurn(){
     const salary=1500*(G.stats.salary||1)+(G.units.includes('driver')?500:0);
     G.money+=salary;
     showPhone('💰 Зарплата +'+salary.toLocaleString('ru')+'₽ (День '+G.day+')');
-    haptic('success');
+    haptic('success');playSFX('buy');
   }
+  playSFX('turn');
   if(G.charmBuff>0)G.charmBuff--;
   if(G.looksBuff>0)G.looksBuff--;
   if(G.discountTimer>0)G.discountTimer--;
@@ -550,6 +551,33 @@ function endTurn(){
   if(G.mode==='campaign')checkChapter();
 }
 
+// ── Sound effects ─────────────────────────────────────────────────────────────
+let _AC=null;
+function getAC(){if(!_AC){try{_AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}return _AC;}
+function playSFX(type){
+  const ac=getAC();if(!ac)return;
+  try{
+    const o=ac.createOscillator(),g=ac.createGain();
+    o.connect(g);g.connect(ac.destination);const now=ac.currentTime;
+    if(type==='move'){o.type='sine';o.frequency.setValueAtTime(330,now);o.frequency.exponentialRampToValueAtTime(550,now+.08);g.gain.setValueAtTime(.06,now);g.gain.exponentialRampToValueAtTime(.001,now+.12);o.start(now);o.stop(now+.12);}
+    else if(type==='buy'){o.type='triangle';o.frequency.setValueAtTime(523,now);o.frequency.setValueAtTime(784,now+.1);g.gain.setValueAtTime(.1,now);g.gain.exponentialRampToValueAtTime(.001,now+.25);o.start(now);o.stop(now+.25);}
+    else if(type==='turn'){o.type='sine';o.frequency.setValueAtTime(440,now);o.frequency.setValueAtTime(550,now+.1);o.frequency.setValueAtTime(660,now+.2);g.gain.setValueAtTime(.07,now);g.gain.exponentialRampToValueAtTime(.001,now+.35);o.start(now);o.stop(now+.35);}
+    else if(type==='win'){o.type='triangle';[523,659,784,1047].forEach((f,i)=>{const o2=ac.createOscillator(),g2=ac.createGain();o2.connect(g2);g2.connect(ac.destination);o2.frequency.value=f;g2.gain.setValueAtTime(.12,now+i*.07);g2.gain.exponentialRampToValueAtTime(.001,now+i*.07+.2);o2.start(now+i*.07);o2.stop(now+i*.07+.2);});}
+    else if(type==='fail'){o.type='sawtooth';o.frequency.setValueAtTime(300,now);o.frequency.exponentialRampToValueAtTime(80,now+.3);g.gain.setValueAtTime(.1,now);g.gain.exponentialRampToValueAtTime(.001,now+.35);o.start(now);o.stop(now+.35);}
+    else if(type==='event'){o.type='sine';o.frequency.setValueAtTime(660,now);o.frequency.setValueAtTime(440,now+.1);g.gain.setValueAtTime(.1,now);g.gain.exponentialRampToValueAtTime(.001,now+.2);o.start(now);o.stop(now+.2);}
+  }catch(e){}
+}
+
+// ── Hero animation ─────────────────────────────────────────────────────────────
+let heroAnim={active:false,sx:0,sy:0,ex:0,ey:0,t:0};
+function getHeroRenderPos(){
+  if(!heroAnim.active)return hexCenter(G.col,G.row);
+  heroAnim.t+=0.14;
+  if(heroAnim.t>=1){heroAnim.active=false;return hexCenter(G.col,G.row);}
+  const e=1-Math.pow(1-heroAnim.t,3); // ease out cubic
+  return{x:heroAnim.sx+(heroAnim.ex-heroAnim.sx)*e,y:heroAnim.sy+(heroAnim.ey-heroAnim.sy)*e};
+}
+
 // ── Movement ──────────────────────────────────────────────────────────────────
 let selectedHex=null,reachSet=null;
 function moveHeroTo(col,row){
@@ -557,14 +585,20 @@ function moveHeroTo(col,row){
   const d=hexDist(G.col,G.row,col,row);
   if(d===0)return;
   if(reachSet&&!reachSet.has(hexKey(col,row))){showPhone('Слишком далеко! '+G.moves+' ходов осталось');return;}
+  // Start animation
+  const start=hexCenter(G.col,G.row);
   G.moves-=Math.max(1,Math.min(d,G.moves));
   G.col=col;G.row=row;
+  const end=hexCenter(col,row);
+  heroAnim={active:true,sx:start.x,sy:start.y,ex:end.x,ey:end.y,t:0};
   revealFog(col,row,3);
   selectedHex=null;reachSet=null;
-  updateHUD();
+  updateHUD();playSFX('move');
   // Check if landing on girl
-  const girl=GIRLS.find(gi=>!gi.beaten&&gi.col===col&&gi.row===row);
-  if(girl)startBattle(girl);
+  setTimeout(()=>{
+    const girl=GIRLS.find(gi=>!gi.beaten&&gi.col===col&&gi.row===row);
+    if(girl)startBattle(girl);
+  },400);
   render();
 }
 
@@ -1137,14 +1171,22 @@ function render(){
     ctx.beginPath();ctx.arc(sx,sy+6,22,0,Math.PI*2);ctx.stroke();
   });
 
-  // Hero
+  // Hero (animated)
   {
-    const {x,y}=hexCenter(G.col,G.row);
+    const {x,y}=getHeroRenderPos();
     const sx=x+cam.x,sy=y+cam.y;
+    // Shadow
+    ctx.globalAlpha=.3;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(sx,sy+24,16,6,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
     drawCharIcon(ctx,sx,sy-16,G.ch.color,G.ch.face,G.ch.name,true);
-    // Hero ring
-    ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=2.5;
-    ctx.beginPath();ctx.arc(sx,sy+6,24,0,Math.PI*2);ctx.stroke();
+    // Pulse ring
+    const pulse=(Math.sin(Date.now()/400)+1)*.5;
+    ctx.strokeStyle=\`rgba(255,255,255,\${.4+pulse*.4})\`;ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(sx,sy+6,24+pulse*3,0,Math.PI*2);ctx.stroke();
+    // Smooth camera follow
+    if(heroAnim.active){
+      const tx=W/2-x,ty=H/2-y-40;
+      cam.x+=(tx-cam.x)*.1;cam.y+=(ty-cam.y)*.1;
+    }
   }
 
   renderMinimap();
