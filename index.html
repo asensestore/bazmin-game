@@ -830,12 +830,26 @@ function checkDelivery(){
     if(Math.hypot(G.p.wx-g.wx,G.p.wy-g.wy)<48){
       if(g.request.need===G.p.item){
         g.sat=true;g.satAt=Date.now();G.p.item=null;
-        const pts=~~(g.request.pts*G.dist.pM*(G.ch.bonus==='points'?G.ch.mult:1));
+        // Combo system: consecutive deliveries = multiplier
+        G.combo=(G.combo||0)+1;clearTimeout(G.comboTimer);
+        G.comboTimer=setTimeout(()=>G.combo=0,8000);
+        const comboMult=G.combo>=5?3:G.combo>=3?2:1;
+        const pts=~~(g.request.pts*G.dist.pM*(G.ch.bonus==='points'?G.ch.mult:1)*comboMult);
         G.score+=pts;G.served++;G.relation=Math.min(100,G.relation+5);sendMPDelivered(pts);
-        addP(g.wx,g.wy,'❤️',4);addP(g.wx,g.wy,'✨',2);addF(`+${pts} ⭐`,'#4caf50');G.shake=3;playSFX('deliver');haptic('success');
+        addP(g.wx,g.wy,'❤️',4);addP(g.wx,g.wy,'✨',2);
+        if(comboMult>1){
+          addP(g.wx,g.wy,'🔥',3);
+          addF(`COMBO x${comboMult}! +${pts} ⭐`,'#ff9800');
+        } else {
+          addF(`+${pts} ⭐`,'#4caf50');
+        }
+        G.shake=3;playSFX('deliver');haptic('success');
         if(G.mode==='story'&&G.chapter>0)setTimeout(()=>tryDeliveryDialog(g),600);
         setTimeout(()=>{G.girls=G.girls.filter(gg=>gg!==g);if(G.running&&G.girls.filter(gg=>!gg.sat).length<3)spawnGirl();},2500);
-      } else {addF('Не то! 🤷','#ff9800');G.relation=Math.max(0,G.relation-2);}
+      } else {
+        addF('Не то! 🤷','#ff9800');G.relation=Math.max(0,G.relation-2);
+        G.combo=0;G.shake=4;playSFX('fail');haptic('error');
+      }
       break;
     }
   }
@@ -878,7 +892,8 @@ function updateHUD(){
   } else {
     timeEl.style.color='';timeEl.style.textShadow='';
   }
-  document.getElementById('hScore').textContent=`⭐ ${G.score}`;
+  const combo=G.combo||0;
+  document.getElementById('hScore').textContent=`⭐ ${G.score}`+(combo>=2?` 🔥x${combo}`:'');
   const is=document.getElementById('itemSlot');
   if(G.p.item){const loc=G.dist.locs.find(l=>l.id===G.p.item);is.textContent=loc?`${loc.logo} ${loc.name}`:'?';is.style.display='block';}else is.style.display='none';
   if(G.mode==='story'){
@@ -1034,8 +1049,18 @@ function loop(ts){
   updatePlayer();checkPickup();checkDelivery();updateGirls(dt);updateNPCs(dt);centerCam();tryRandomEvent();
 
   const sky=getSky();
-  X.fillStyle=`rgb(${~~sky.r},${~~sky.g},${~~sky.b})`;X.fillRect(0,0,W,H);
-  X.fillStyle=`rgba(${~~sky.r>>1},${~~sky.g>>1},${~~sky.b>>1},${(1-sky.a)*.3})`;X.fillRect(0,0,W,H);
+  // Gradient sky background
+  const skyGrd=X.createLinearGradient(0,0,0,H*.6);
+  skyGrd.addColorStop(0,`rgb(${~~(sky.r*.6)},${~~(sky.g*.6)},${~~(sky.b*.6)})`);
+  skyGrd.addColorStop(1,`rgb(${~~sky.r},${~~sky.g},${~~sky.b})`);
+  X.fillStyle=skyGrd;X.fillRect(0,0,W,H);
+  // Sun/Moon glow
+  const isDay=sky.a>.4;
+  const glowX=W*.75,glowY=H*.2;
+  const glowGrd=X.createRadialGradient(glowX,glowY,0,glowX,glowY,120);
+  if(isDay){glowGrd.addColorStop(0,`rgba(255,240,150,${sky.a*.25})`);glowGrd.addColorStop(1,'transparent');}
+  else{glowGrd.addColorStop(0,`rgba(180,180,255,${(.5-sky.a)*0.4})`);glowGrd.addColorStop(1,'transparent');}
+  X.fillStyle=glowGrd;X.fillRect(glowX-120,glowY-120,240,240);
 
   // Apply screen shake
   const shkX=G.shake>0?R(-G.shake,G.shake):0;
