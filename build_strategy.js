@@ -9,6 +9,8 @@ canvas{display:block;touch-action:none}
 .screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(5,5,15,.97);z-index:10;padding:16px;gap:12px}
 .screen.active{display:flex}
 @keyframes glow{0%,100%{text-shadow:0 0 20px #ff6b9d,0 0 40px #ff6b9d44}50%{text-shadow:0 0 30px #ff6b9d,0 0 60px #ff6b9d88}}
+@keyframes shake{0%,100%{transform:none}15%{transform:translateX(-6px)}30%{transform:translateX(6px)}45%{transform:translateX(-4px)}60%{transform:translateX(4px)}75%{transform:translateX(-2px)}}
+.shake{animation:shake .4s ease-out!important}
 @keyframes dayIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}30%{opacity:1;transform:translate(-50%,-50%) scale(1)}70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.05)}}
 #dayBanner.show{display:block!important;animation:dayIn 2s ease-in-out forwards}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
@@ -1214,6 +1216,9 @@ function playCard(idx){
     b.heroHP=Math.max(0,b.heroHP+net);
     logEl.textContent='😬 Не то... '+net;logEl.style.color='#f44336';
     haptic('error');
+    // Screen shake on hero damage
+    const btEl=document.getElementById('battle');
+    if(btEl){btEl.classList.remove('shake');void btEl.offsetWidth;btEl.classList.add('shake');setTimeout(()=>btEl.classList.remove('shake'),420);}
   }
   if(!FREE_CARDS.includes(card.id))b.usedCards.add(card.id);
   b.round++;
