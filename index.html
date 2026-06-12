@@ -11,6 +11,8 @@ canvas{display:block;touch-action:none}
 .screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(5,5,15,.97);z-index:10;padding:16px;gap:12px}
 .screen.active{display:flex}
 @keyframes glow{0%,100%{text-shadow:0 0 20px #ff6b9d,0 0 40px #ff6b9d44}50%{text-shadow:0 0 30px #ff6b9d,0 0 60px #ff6b9d88}}
+@keyframes dayIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}30%{opacity:1;transform:translate(-50%,-50%) scale(1)}70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.05)}}
+#dayBanner.show{display:block!important;animation:dayIn 2s ease-in-out forwards}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .title{font-size:22px;font-weight:900;color:#ff6b9d;text-align:center;letter-spacing:2px;animation:glow 3s ease-in-out infinite}
 .subtitle{font-size:11px;color:#666;text-align:center;letter-spacing:4px;text-transform:uppercase;animation:fadeUp .6s ease-out}
@@ -174,6 +176,12 @@ canvas{display:block;touch-action:none}
 
 <!-- PHONE TOAST -->
 <div id="phone"></div>
+
+<!-- DAY BANNER -->
+<div id="dayBanner" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:200;background:rgba(10,10,25,.88);border:1.5px solid #ffd740;border-radius:20px;padding:14px 36px;text-align:center;pointer-events:none">
+  <div id="dayBannerNum" style="font-size:28px;font-weight:900;color:#ffd740;letter-spacing:2px"></div>
+  <div id="dayBannerWx" style="font-size:14px;margin-top:4px;color:#aaa"></div>
+</div>
 
 <!-- EVENT TOAST -->
 <div id="evToast">
@@ -684,6 +692,19 @@ function tryEvent(){
 function showPhone(t){const el=document.getElementById('phone');el.textContent=t;el.style.display='block';clearTimeout(el._t);el._t=setTimeout(()=>el.style.display='none',3200);}
 
 // ── Turn system ───────────────────────────────────────────────────────────────
+function showDayBanner(day,wxLabel){
+  const el=document.getElementById('dayBanner');
+  const num=document.getElementById('dayBannerNum');
+  const wx=document.getElementById('dayBannerWx');
+  if(!el)return;
+  num.textContent='День '+day;
+  wx.textContent=wxLabel||'';
+  el.classList.remove('show');
+  void el.offsetWidth; // reflow
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2100);
+}
+
 function endTurn(){
   haptic('impact');
   const prevDay=G.day;
@@ -698,6 +719,7 @@ function endTurn(){
   if(G.day>prevDay){
     rollWeather();
     const newWx=getWeather();
+    showDayBanner(G.day,newWx.label+' '+(newWx.id==='sunny'?'Солнечно':newWx.id==='cloudy'?'Пасмурно':newWx.id==='rainy'?'Дождь':newWx.id==='snowy'?'Снег':''));
     if(newWx.id!=='sunny')showPhone(newWx.label+' Погода: '+{cloudy:'Пасмурно',rainy:'Дождь! +'+wx.romBonus+'❤️',snowy:'Снег! +'+wx.romBonus+'❤️ но -ход'}[newWx.id]);
     const salary=1500*(G.stats.salary||1)+(G.units.includes('driver')?500:0);
     G.money+=salary;
@@ -1658,16 +1680,24 @@ function render(){
   updateParticles(ctx);
   // Weather ambient particles (rain/snow)
   {const wx=getWeather();
-  if(wx.id==='rainy'||wx.id==='snowy'){
-    const count=wx.id==='snowy'?2:3;
-    for(let i=0;i<count;i++){
-      if(Math.random()<.3){
-        const rx=Math.random()*W;
+  if(wx.id==='rainy'){
+    // Draw canvas rain lines directly (faster than emoji particles)
+    ctx.save();ctx.strokeStyle='rgba(100,160,255,.35)';ctx.lineWidth=1;
+    const t=Date.now();
+    for(let i=0;i<18;i++){
+      const rx=((i*173+t*.7)%1000)/1000*W;
+      const ry=((i*97+t*1.4)%1000)/1000*H;
+      ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(rx+3,ry+10);ctx.stroke();
+    }
+    ctx.restore();
+  } else if(wx.id==='snowy'){
+    for(let i=0;i<2;i++){
+      if(Math.random()<.25){
         particles.push({
-          x:rx,y:-10,vx:wx.id==='snowy'?(Math.random()-.5)*.5:0.5+Math.random(),
-          vy:wx.id==='snowy'?0.5+Math.random()*.5:2+Math.random()*2,
-          emoji:wx.id==='snowy'?'❄':'💧',size:8+Math.random()*4,
-          life:60+Math.random()*40,maxLife:100,_env:true
+          x:Math.random()*W,y:-10,vx:(Math.random()-.5)*.6,
+          vy:0.5+Math.random()*.6,
+          emoji:'❄',size:7+Math.random()*4,
+          life:80+Math.random()*50,maxLife:130,_env:true
         });
       }
     }
