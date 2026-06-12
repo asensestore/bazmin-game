@@ -340,6 +340,9 @@ const SHOPS_DEF=[
   {id:'cartier',name:'Картье 💍',emoji:'💍',desc:'Ювелирка, очень дорого',price:8000,gives:'ring',district:'krasnogorsk',effect:'card_ring'},
   {id:'gucci',name:'Гуччи 👜',emoji:'👜',desc:'Одежда, очень дорого',price:12000,gives:'luxury',district:'krasnogorsk',effect:'card_luxury'},
   {id:'flowers99',name:'Цветы 99₽ 🌼',emoji:'🌼',desc:'Дешёвые цветы',price:99,gives:'cheap_bouquet',district:'mytishi',effect:'card_bouquet_cheap'},
+  {id:'bookstore',name:'Книжный 📜',emoji:'📜',desc:'Стихи: красиво и бюджетно',price:300,gives:'poem',district:'patriki',effect:'card_poem'},
+  {id:'music',name:'Музыкальный 🎸',emoji:'🎸',desc:'Серенада: произведёт впечатление',price:1500,gives:'serenade',district:'ramenki',effect:'card_serenade'},
+  {id:'dance',name:'Школа танцев 💃',emoji:'💃',desc:'Танцевальный урок',price:700,gives:'dance',district:'mytishi',effect:'card_dance'},
 ];
 const RESTS_DEF=[
   {id:'chaihona',name:'Чайхона 🍜',emoji:'🍜',desc:'Ресторан: +20 обаяния',cost:1500,district:'patriki',bonus:'charisma'},
@@ -442,8 +445,11 @@ const ALL_CARDS={
   ring:{emoji:'💍',name:'Украшение',power:60,type:'luxury',cost:8000},
   luxury:{emoji:'👜',name:'Дорогой подарок',power:55,type:'luxury',cost:12000},
   dinner:{emoji:'🍽',name:'Ужин в ресторане',power:45,type:'experience',cost:2000},
+  poem:{emoji:'📜',name:'Стихи',power:28,type:'romance',cost:300,desc:'Читаешь ей стихи'},
+  serenade:{emoji:'🎸',name:'Серенада',power:42,type:'mood',cost:1500,desc:'Поёшь под окном'},
+  dance:{emoji:'💃',name:'Танец',power:35,type:'affection',cost:700,desc:'Кружишь её в танце'},
 };
-// Free cards always available
+// Free cards always available (never consumed)
 const FREE_CARDS=['compliment','joke','hug','listen'];
 
 // Her demand cards
@@ -458,9 +464,10 @@ const DEMANDS=[
   {emoji:'🍽',name:'Ресторан',power:28,type:'experience',desc:'Хочу в ресторан, давно не ходили'},
   {emoji:'🛍',name:'Шоппинг',power:32,type:'luxury',desc:'Ты же любишь меня?'},
 ];
-const COUNTER_BONUS={luxury:['ring','luxury','gift'],romance:['bouquet','bouquet_cheap','compliment'],
+const COUNTER_BONUS={luxury:['ring','luxury','gift'],romance:['bouquet','bouquet_cheap','compliment','poem'],
   attention:['compliment','listen','hug'],trust:['listen','hug','compliment'],
-  mood:['joke','hug','compliment'],experience:['dinner','gift'],status:['ring','luxury']};
+  mood:['joke','hug','compliment','serenade'],experience:['dinner','gift'],
+  status:['ring','luxury'],sweet:['choc','gift'],affection:['hug','dance','compliment']};
 
 // ── Girls on map ─────────────────────────────────────────────────────────────
 const GIRL_DATA=[
@@ -1067,17 +1074,21 @@ function playCard(idx){
   const comboMult=(isCounter&&b.lastWasCounter)?1.4:1;
   if(isCounter&&b.lastWasCounter)spawnParticles(W/2,H*0.6,'win');
   b.lastWasCounter=isCounter;
+  // Critical hit: 20% chance on counter cards
+  const isCrit=isCounter&&Math.random()<0.2;
+  const critMult=isCrit?2:1;
+  if(isCrit)spawnParticles(W/2,H*0.5,'stars');
   // Wingman bonus
   const wingBonus=G.units.includes('wingman')?1.2:1;
-  const attack=Math.round(card.power*mult*comboMult*wingBonus*(1+G.stats.charisma*.05));
+  const attack=Math.round(card.power*mult*comboMult*critMult*wingBonus*(1+G.stats.charisma*.05));
   const defense=Math.round(dem.power*(1-(G.charmBuff>0?.1:0)));
   const net=attack-defense;
   const logEl=document.getElementById('bLog');
   if(net>0){
     b.girlHP=Math.max(0,b.girlHP-net);b.score+=net;
-    let pct=mult>=1.8?'🎯 Идеально!':mult>=1.4?'👍 Хорошо':wingBonus>1?'🤝 Вингмен помог!':'🙂 Нейтрально';
-    if(comboMult>1)pct='🔥 КОМБО! '+pct;
-    logEl.textContent=pct+' +'+net;logEl.style.color=comboMult>1?'#ffd740':'#69f0ae';
+    let pct=isCrit?'💥 КРИТИЧЕСКИЙ УДАР!':mult>=1.8?'🎯 Идеально!':mult>=1.4?'👍 Хорошо':wingBonus>1?'🤝 Вингмен помог!':'🙂 Нейтрально';
+    if(comboMult>1&&!isCrit)pct='🔥 КОМБО! '+pct;
+    logEl.textContent=pct+' +'+net;logEl.style.color=isCrit?'#ff9800':comboMult>1?'#ffd740':'#69f0ae';
     haptic('success');
   } else {
     b.heroHP=Math.max(0,b.heroHP+net);
