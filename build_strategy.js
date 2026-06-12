@@ -506,7 +506,18 @@ function spawnNPCs(){
 }
 function updateNPCs(){
   NPCS.forEach(npc=>{
-    if(npc.met)return;
+    // Respawn after 3 days
+    if(npc.met){
+      if(!npc.respawnDay)npc.respawnDay=G.day+3;
+      if(G.day>=npc.respawnDay){
+        npc.met=false;npc.respawnDay=0;
+        // Move to random position
+        const pos=[[7,4],[3,7],[17,4],[20,7],[5,14],[9,13],[18,15],[15,12]];
+        const p=pos[Math.floor(Math.random()*pos.length)];
+        npc.col=p[0];npc.row=p[1];
+      }
+      return;
+    }
     const nb=hexNeighbors(npc.col,npc.row);
     if(nb.length&&Math.random()<.3){
       const n=nb[Math.floor(Math.random()*nb.length)];
@@ -611,11 +622,39 @@ const REVENTS=[
       {text:'Ничего не подарю',e:()=>{G.rel=Math.max(0,G.rel-20);},response:'-20 к отношениям. Она ОЧЕНЬ обиделась. 😤'},
     ]},
 ];
+// District-specific events
+const DISTRICT_EVENTS={
+  patriki:[
+    {title:'🥂 Тусовка в Патриках!',dialog:false,e:()=>{G.rel=Math.min(100,G.rel+5);G.rep=Math.min(100,G.rep+3);showPhone('Крутая вечеринка! +5❤️ +3🧠');playSFX('event');}},
+    {title:'☕ Кофе в Starbucks',dialog:false,e:()=>{G.energy=Math.min(G.maxEnergy,G.energy+2);G.money=Math.max(0,G.money-300);showPhone('Кофе: +2⚡ -300₽');}},
+  ],
+  krasnogorsk:[
+    {title:'🚗 Увидел Bentley!',dialog:false,e:()=>{G.storyFlags.sawBentley=true;showPhone('Богатство Красногорска... вдохновляет!');G.rep=Math.min(100,G.rep+2);}},
+    {title:'💎 Ювелирный акцент',dialog:false,e:()=>{if(G.money>=3000){G.money-=3000;G.rel=Math.min(100,G.rel+10);showPhone('Купил серёжки: +10❤️');}else showPhone('Тут нужны деньги...');}},
+  ],
+  mytishi:[
+    {title:'🥟 Пельмени у соседей',dialog:false,e:()=>{G.energy=Math.min(G.maxEnergy,G.energy+3);showPhone('Угостили пельменями: +3⚡');}},
+    {title:'🏚 Коммунальный скандал',dialog:false,e:()=>{G.rep=Math.max(0,G.rep-3);showPhone('Скандал в подъезде... -3🧠');}},
+  ],
+  ramenki:[
+    {title:'📦 WildBerry промокод',dialog:false,e:()=>{G.discountTimer=2;showPhone('Промокод! Скидки -30% на 2 хода 📦');playSFX('event');}},
+    {title:'🏋 Стрит-воркаут',dialog:false,e:()=>{G.stats.charisma++;showPhone('Воркаут: +1 Харизма 💪');playSFX('buy');}},
+  ],
+};
+
 let evCooldown=0;
 function tryEvent(){
   if(evCooldown>0){evCooldown--;return;}
   if(Math.random()<.28){
-    const ev=REVENTS[Math.floor(Math.random()*REVENTS.length)];
+    // 30% chance of district-specific event
+    const curDist=getDistrict(G.col,G.row);
+    let ev;
+    if(Math.random()<.3&&DISTRICT_EVENTS[curDist]){
+      const distEvs=DISTRICT_EVENTS[curDist];
+      ev=distEvs[Math.floor(Math.random()*distEvs.length)];
+    } else {
+      ev=REVENTS[Math.floor(Math.random()*REVENTS.length)];
+    }
     if(ev.dialog){
       // Map event choices to showDialog format; e() runs as fn (at click time, dynamic response)
       const mapped=ev.choices.map(c=>({
