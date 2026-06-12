@@ -62,9 +62,11 @@ canvas{display:block;touch-action:none}
 #bDemandPow{font-size:10px;color:#aaa;margin-top:2px}
 #bLog{font-size:10px;color:#69f0ae;min-height:18px;text-align:center}
 #bCards{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:10px 14px;background:rgba(0,0,0,.4)}
-.bCard{background:rgba(15,15,35,.9);border:1.5px solid #333;border-radius:12px;padding:10px 12px;cursor:pointer;transition:.2s;min-width:80px;text-align:center;flex:0 0 auto}
+.bCard{background:rgba(15,15,35,.9);border:1.5px solid #333;border-radius:12px;padding:10px 12px;cursor:pointer;transition:.2s;min-width:80px;text-align:center;flex:0 0 auto;position:relative}
 .bCard:hover,.bCard:active{border-color:#ff6b9d;background:#ff6b9d11;transform:translateY(-2px)}
 .bCard.used{opacity:.3;pointer-events:none}
+.bCard.good{border-color:#69f0ae;background:rgba(105,240,174,.1);box-shadow:0 0 8px #69f0ae55}
+.bCard.good::after{content:'⚡ СИЛЬНО';position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:#69f0ae;color:#000;font-size:7px;font-weight:900;padding:1px 5px;border-radius:4px;white-space:nowrap}
 .bCard.good{border-color:#69f0ae}
 .bCardEmoji{font-size:22px}
 .bCardName{font-size:9px;color:#ccc;margin-top:3px}
@@ -942,7 +944,10 @@ function showNextDemand(){
   document.getElementById('bDemandEmoji').textContent=dem.emoji;
   document.getElementById('bDemandName').textContent=dem.name;
   document.getElementById('bDemandPow').textContent=dem.desc||('Сила: '+dem.power);
-  document.getElementById('bLog').textContent='Выбери ответ...';
+  // Show weakness hint
+  const counters=COUNTER_BONUS[dem.type]||[];
+  const counterNames=counters.slice(0,2).map(id=>ALL_CARDS[id]?.name||id).join(', ');
+  document.getElementById('bLog').textContent=counterNames?'💡 Слабость: '+counterNames:'Выбери ответ...';
   updateBattleHUD();
 }
 
