@@ -97,7 +97,11 @@ canvas{display:block;position:fixed;inset:0}
 <div id="gameOver">
   <h2 id="goT">Игра окончена</h2>
   <div class="stat" id="goS"></div>
-  <button class="gbtn" onclick="location.reload()">↺ Снова</button>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px">
+    <button class="gbtn" onclick="location.reload()">↺ Снова</button>
+    <button class="gbtn" style="border-color:#4fc3f7;color:#4fc3f7" onclick="shareToTg()" id="shareBtn">📤 Поделиться</button>
+  </div>
+  <div id="goRating" style="font-size:10px;color:#555;margin-top:6px"></div>
 </div>
 <button id="travelBtn" onclick="showTravel()">🗺 Район</button>
 <div id="joyArea"><div id="jBase"></div><div id="jKnob"></div></div>
@@ -663,7 +667,7 @@ function drawHuman(sx,sy,faceId,bodyCol,hairCol,isGirl,walkT,sz,emotion,item){
 function drawPlayer(){
   const p=G.p,ch=G.ch;
   const{sx,sy}=wToS(p.wx,p.wy);
-  const kb=getKBInput();
+  const kb=G.kbInput||{dx:0,dy:0,a:false};
   const moving=JOY.a||kb.a;
   p.walkT+=moving?.05:0;
   let itemE=null;
@@ -781,7 +785,7 @@ function getKBInput(){
 }
 
 function updatePlayer(){
-  const kb=getKBInput();
+  const kb=G.kbInput||{dx:0,dy:0,a:false};
   const moving=JOY.a||kb.a;
   if(!moving)return;
   const jdx=JOY.a?JOY.dx:kb.dx, jdy=JOY.a?JOY.dy:kb.dy;
@@ -1012,6 +1016,7 @@ function loop(ts){
   if(G.speedModTimer>0){G.speedModTimer-=dt;if(G.speedModTimer<=0)G.speedMod=1;}
   if(G.discountTimer>0){G.discountTimer-=dt;if(G.discountTimer<=0)G.priceDiscount=1;}
   if(G.timer<=0||(G.money<0&&!G.p.item)){gameOverScreen();return;}
+  G.kbInput=getKBInput();
   updatePlayer();checkPickup();checkDelivery();updateGirls(dt);updateNPCs(dt);centerCam();tryRandomEvent();
 
   const sky=getSky();
@@ -1065,8 +1070,22 @@ function gameOverScreen(){
     '😅 Базовый минимум':'Свадьба состоялась. Еле вытянул.',
     '💸 Банкрот':'Деньги кончились. Невеста ушла к бизнесмену.'
   }[title]:'';
-  document.getElementById('goS').innerHTML=`${G.ch.name}<br>⭐ ${G.score}<br>✅ ${G.served}<br>🚩 ${G.failed}<br>💰 ${G.money.toLocaleString('ru')}₽${G.mode==='story'?'<br>❤️ '+G.relation+'%<br><br>'+ending:''}`;
+  document.getElementById('goS').innerHTML=`${G.ch.name}<br>⭐ ${G.score} очков<br>✅ ${G.served} доставок<br>🚩 ${G.failed} провалов<br>💰 ${G.money.toLocaleString('ru')}₽${G.mode==='story'?'<br>❤️ Отношения: '+G.relation+'%<br><br><em>'+ending+'</em>':''}`;
+  // Rating
+  const rank=G.score<100?'🥉 Новичок':G.score<500?'🥈 Курьер':G.score<1500?'🥇 Профи':'🏆 Легенда';
+  document.getElementById('goRating').textContent=rank+' — '+G.score+' очков';
   document.getElementById('gameOver').style.display='flex';
+}
+
+function shareToTg(){
+  const rank=G.score<100?'Новичок':G.score<500?'Курьер':G.score<1500?'Профи':'Легенда';
+  const text=`💪 Базовый Минимум!\nПерсонаж: ${G.ch?G.ch.name:'?'}\n⭐ ${G.score} очков (${rank})\n✅ ${G.served} доставок\n\nПопробуй сам: https://asensestore.github.io/bazmin-game/`;
+  if(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.openLink){
+    window.Telegram.WebApp.openLink('https://t.me/share/url?url='+encodeURIComponent('https://asensestore.github.io/bazmin-game/')+'&text='+encodeURIComponent(`💪 Я набрал ${G.score} очков в Базовом Минимуме! Попробуй!`));
+  } else {
+    // Clipboard fallback
+    navigator.clipboard&&navigator.clipboard.writeText(text).then(()=>alert('Скопировано в буфер! Вставь в Telegram 📋')).catch(()=>{});
+  }
 }
 
 // ===== START =====
