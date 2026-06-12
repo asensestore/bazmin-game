@@ -13,6 +13,8 @@ canvas{display:block;touch-action:none}
 .shake{animation:shake .4s ease-out!important}
 @keyframes dayIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}30%{opacity:1;transform:translate(-50%,-50%) scale(1)}70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.05)}}
 #dayBanner.show{display:block!important;animation:dayIn 2s ease-in-out forwards}
+@keyframes chIn{0%{opacity:0}15%{opacity:1}75%{opacity:1}100%{opacity:0}}
+#chapterBanner.show{display:flex!important;animation:chIn 2.5s ease-in-out forwards}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .title{font-size:22px;font-weight:900;color:#ff6b9d;text-align:center;letter-spacing:2px;animation:glow 3s ease-in-out infinite}
 .subtitle{font-size:11px;color:#666;text-align:center;letter-spacing:4px;text-transform:uppercase;animation:fadeUp .6s ease-out}
@@ -188,6 +190,13 @@ const HTML = `
 <div id="dayBanner" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:200;background:rgba(10,10,25,.88);border:1.5px solid #ffd740;border-radius:20px;padding:14px 36px;text-align:center;pointer-events:none">
   <div id="dayBannerNum" style="font-size:28px;font-weight:900;color:#ffd740;letter-spacing:2px"></div>
   <div id="dayBannerWx" style="font-size:14px;margin-top:4px;color:#aaa"></div>
+</div>
+
+<!-- CHAPTER BANNER -->
+<div id="chapterBanner" style="display:none;position:fixed;inset:0;z-index:195;background:rgba(5,5,20,.92);align-items:center;justify-content:center;flex-direction:column;gap:10px;pointer-events:none">
+  <div id="chBannerNum" style="font-size:13px;letter-spacing:6px;text-transform:uppercase;color:#ffd74088">ГЛАВА</div>
+  <div id="chBannerN" style="font-size:56px;font-weight:900;color:#ffd740"></div>
+  <div id="chBannerTitle" style="font-size:15px;color:#ff6b9d;letter-spacing:1px"></div>
 </div>
 
 <!-- EVENT TOAST -->
@@ -739,6 +748,16 @@ function tryEvent(){
 function showPhone(t){const el=document.getElementById('phone');el.textContent=t;el.style.display='block';clearTimeout(el._t);el._t=setTimeout(()=>el.style.display='none',3200);}
 
 // ── Turn system ───────────────────────────────────────────────────────────────
+function showChapterBanner(num,title,cb){
+  const el=document.getElementById('chapterBanner');
+  if(!el){if(cb)setTimeout(cb,500);return;}
+  document.getElementById('chBannerN').textContent=num;
+  document.getElementById('chBannerTitle').textContent=title;
+  el.classList.remove('show');void el.offsetWidth;
+  el.classList.add('show');
+  setTimeout(()=>{el.classList.remove('show');if(cb)cb();},2600);
+}
+
 function showDayBanner(day,wxLabel){
   const el=document.getElementById('dayBanner');
   const num=document.getElementById('dayBannerNum');
@@ -1397,37 +1416,37 @@ function checkChapter(){
     const beatenInPatriki=GIRLS.filter(gi=>gi.beaten&&gi.col<12&&gi.row<10);
     if(beatenInPatriki.length>=1&&!G.storyFlags.ch1Done){
       G.storyFlags.ch1Done=true;G.chapter=2;
-      setTimeout(()=>showDialog('Алиса 💕','Мне понравилось наше свидание! Но честно... подруга говорит ты немного скуп. Может ты меня удивишь?',[
+      showChapterBanner(2,'Подарок для Алисы',()=>showDialog('Алиса 💕','Мне понравилось наше свидание! Но честно... подруга говорит ты немного скуп. Может ты меня удивишь?',[
         {text:'Куплю что-нибудь особенное! 💎',rel:+12,pts:100,response:'Вот это другой разговор! 😍'},
         {text:'Подруга ничего не понимает!',rel:-5,pts:0,response:'Ты так думаешь? 🙄'},
         {text:'Ну ладно, куплю...',rel:+3,pts:20,response:'Хорошо 😊'},
-      ],()=>{showPhone('Глава 2: Купи что-нибудь особенное для Алисы!');}),500);
+      ],()=>{showPhone('Глава 2: Купи что-нибудь особенное для Алисы!');}));
     }
   }
   if(G.chapter===2&&!G.storyFlags.ch2Done){
     const hasBought=G.cards.some(c=>['bouquet','ring','luxury','gift'].includes(c));
     if(hasBought){
       G.storyFlags.ch2Done=true;G.chapter=3;
-      setTimeout(()=>showDialog('Алиса 💕','Я хочу познакомить тебя с родителями. Они строгие, но справедливые. Найди мамину квартиру в Мытищах...',[
+      showChapterBanner(3,'Знакомство с родителями',()=>showDialog('Алиса 💕','Я хочу познакомить тебя с родителями. Они строгие, но справедливые. Найди мамину квартиру в Мытищах...',[
         {text:'Готов! Сделаю всё правильно 💪',rel:+8,pts:50,response:'Вот это мужчина! 💕'},
         {text:'Зачем так рано?..',rel:-5,pts:0,response:'Ну хочешь не хочешь...'},
-      ],()=>{showPhone('Глава 3: Найди Мамину квартиру в Мытищах!');}),500);
+      ],()=>{showPhone('Глава 3: Найди Мамину квартиру в Мытищах!');}));
     }
   }
   if(G.chapter===3&&G.storyFlags.metMom&&!G.storyFlags.ch3Done){
     G.storyFlags.ch3Done=true;G.chapter=4;
-    setTimeout(()=>showDialog('Алиса 💕','Мои родители тебя одобрили... почти. Папа сказал — сначала кольцо! Настоящее, из Картье 💍',[
+    showChapterBanner(4,'Кольцо из Картье',()=>showDialog('Алиса 💕','Мои родители тебя одобрили... почти. Папа сказал — сначала кольцо! Настоящее, из Картье 💍',[
       {text:'Куплю самое лучшее!',rel:+20,pts:200,response:'Ты самый лучший! 😍💕'},
       {text:'Может что-то попроще?',rel:-10,pts:0,response:'Папа будет недоволен...'},
-    ],()=>{showPhone('Глава 4: Купи кольцо в Картье (Красногорск) и вернись к Алисе!');}),500);
+    ],()=>{showPhone('Глава 4: Купи кольцо в Картье (Красногорск) и вернись к Алисе!');}));
   }
   if(G.chapter===4&&!G.storyFlags.ch4Done){
     if(G.cards.includes('ring')){
       G.storyFlags.ch4Done=true;G.chapter=5;
-      setTimeout(()=>showDialog('Алиса 💕','[Ты опускаешься на одно колено] Алиса... выйдешь за меня?',[
+      showChapterBanner(5,'Тёщина проверка',()=>showDialog('Алиса 💕','[Ты опускаешься на одно колено] Алиса... выйдешь за меня?',[
         {text:'Я хочу провести с тобой всю жизнь!',rel:+30,pts:500,response:'ДА! Тысячу раз да! 💍💕😭'},
         {text:'Нам нужно поговорить...',rel:+5,pts:50,response:'Ты уверен? Окей...'},
-      ],()=>{G.storyFlags.engaged=true;G.storyFlags.needTyoshcha=true;showPhone('Глава 5: Найди тёщу в Красногорске и получи её благословение! 👩‍👧');}),500);
+      ],()=>{G.storyFlags.engaged=true;G.storyFlags.needTyoshcha=true;showPhone('Глава 5: Найди тёщу в Красногорске и получи её благословение! 👩‍👧');}));
     }
   }
 }
