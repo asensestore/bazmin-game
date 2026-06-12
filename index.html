@@ -456,9 +456,16 @@ const COUNTER_BONUS={luxury:['ring','luxury','gift'],romance:['bouquet','bouquet
   mood:['joke','hug','compliment'],experience:['dinner','gift'],status:['ring','luxury']};
 
 // ── Girls on map ─────────────────────────────────────────────────────────────
-const GIRL_NAMES=['Алиса','Катя','Маша','Настя','Даша','Юля','Лена','Аня'];
-const GIRL_COLORS=['#ff6b9d','#f48fb1','#f06292','#ec407a','#e91e63','#ad1457','#ff80ab','#ff4081'];
-const GIRL_FACES=['lilya','arina','lilya','arina'];
+const GIRL_DATA=[
+  {name:'Алиса',face:'arina',color:'#ff6b9d',personality:'romantic',desc:'Романтичная 💕 Любит комплименты',bias:['romance','attention']},
+  {name:'Катя',face:'lilya',color:'#f48fb1',personality:'intellectual',desc:'Умная 📚 Ценит беседы',bias:['mood','experience']},
+  {name:'Маша',face:'arina',color:'#f06292',personality:'adventurous',desc:'Активная 🏃 Хочет приключений',bias:['experience','mood']},
+  {name:'Настя',face:'lilya',color:'#ec407a',personality:'materialistic',desc:'Материалистка 💎 Любит роскошь',bias:['luxury','status']},
+  {name:'Даша',face:'arina',color:'#e91e63',personality:'caring',desc:'Нежная 🌸 Ценит заботу',bias:['attention','trust']},
+  {name:'Юля',face:'lilya',color:'#ff80ab',personality:'status',desc:'Гламурная 👑 Статус важен',bias:['status','luxury']},
+  {name:'Лена',face:'arina',color:'#ad1457',personality:'trust',desc:'Верная 🤝 Строит доверие',bias:['trust','attention']},
+  {name:'Аня',face:'lilya',color:'#ff4081',personality:'romantic',desc:'Мечтательная 🌙 Ищет любовь',bias:['romance','trust']},
+];
 const GIRL_DISTRICTS=[
   {col:6,row:3,level:1},{col:4,row:6,level:1},{col:8,row:2,level:2},
   {col:15,row:4,level:3},{col:18,row:6,level:3},{col:16,row:2,level:3},
@@ -467,13 +474,10 @@ const GIRL_DISTRICTS=[
 ];
 let GIRLS=[];
 function spawnGirls(){
-  GIRLS=GIRL_DISTRICTS.map((pos,i)=>({
-    col:pos.col,row:pos.row,level:pos.level||1,
-    name:GIRL_NAMES[i%GIRL_NAMES.length],
-    color:GIRL_COLORS[i%GIRL_COLORS.length],
-    face:GIRL_FACES[i%GIRL_FACES.length],
-    beaten:false,id:i,
-  }));
+  GIRLS=GIRL_DISTRICTS.map((pos,i)=>{
+    const gd=GIRL_DATA[i%GIRL_DATA.length];
+    return{col:pos.col,row:pos.row,level:pos.level||1,...gd,beaten:false,id:i};
+  });
 }
 
 // ── Wandering NPCs ────────────────────────────────────────────────────────────
@@ -757,7 +761,7 @@ function selectHex(col,row){
     const girl=GIRLS.find(gi=>!gi.beaten&&gi.col===col&&gi.row===row);
     if(girl){
       document.getElementById('hiTitle').textContent='👩 '+girl.name;
-      document.getElementById('hiDesc').textContent='Уровень '+girl.level+' · Нажми чтобы познакомиться';
+      document.getElementById('hiDesc').textContent=(girl.desc||'Уровень '+girl.level)+' · Нажми чтобы познакомиться';
       const btn=document.getElementById('hiBtn');btn.style.display='block';btn.textContent='Познакомиться';
       pendingHexAction={col,row,girl};
       el.style.display='block';
@@ -864,9 +868,16 @@ function getBattleCards(){
 }
 function startBattle(girl){
   haptic('impact');
-  const demandCount=4+girl.level;
   const demands=[];
-  for(let i=0;i<5;i++)demands.push({...DEMANDS[Math.floor(Math.random()*DEMANDS.length)]});
+  for(let i=0;i<5;i++){
+    // 60% chance to pick a demand matching girl's personality bias
+    let pool=DEMANDS;
+    if(girl.bias&&Math.random()<.6){
+      const biased=DEMANDS.filter(d=>girl.bias.includes(d.type));
+      if(biased.length)pool=biased;
+    }
+    demands.push({...pool[Math.floor(Math.random()*pool.length)]});
+  }
   // Scale demands by girl level
   demands.forEach(d=>{d.power=Math.round(d.power*(1+girl.level*.2));});
 
@@ -874,7 +885,7 @@ function startBattle(girl){
     maxHeroHP:100+G.stats.charisma*5,maxGirlHP:100+girl.level*15,
     log:'',cards:getBattleCards(),usedCards:new Set(),done:false,score:0};
 
-  document.getElementById('bTitle').textContent='💕 Свидание: '+girl.name;
+  document.getElementById('bTitle').textContent='💕 Свидание: '+girl.name+(girl.desc?' · '+girl.desc:'');
   document.getElementById('battle').style.display='flex';
   updateBattleHUD();
   showNextDemand();
