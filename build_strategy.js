@@ -222,6 +222,7 @@ const HTML = `
       <div class="bHPBar"><div class="bHPFill" id="bHPGirlFill" style="background:linear-gradient(90deg,#f44336,#b71c1c);width:100%"></div></div>
     </div>
     <div id="bDemand">
+      <div id="bDemandComment" style="font-size:10px;color:#ff80ab;font-style:italic;margin-bottom:4px;min-height:14px"></div>
       <div id="bDemandEmoji">?</div>
       <div id="bDemandName">Ждём...</div>
       <div id="bDemandType" style="display:inline-block;margin-top:4px;padding:2px 8px;border-radius:8px;font-size:9px;font-weight:700;letter-spacing:.5px;background:rgba(244,67,54,.2);color:#ff8a80"></div>
@@ -1188,10 +1189,24 @@ function updateBattleHUD(){
   });
 }
 
+const PERSONALITY_BATTLE_LINES={
+  romantic:['Покажи, что ты настоящий романтик... 💕','Я мечтала именно об этом...','Ты знаешь, как покорить сердце?'],
+  intellectual:['Интересно, как ты с этим справишься 🤔','Логика против чувств. Что выберешь?','Посмотрим, насколько ты умён...'],
+  adventurous:['Не скучай! Давай живее! 🏃','Жизнь — это приключение, ты готов?','Ничего не бойся!'],
+  materialistic:['Это же немного... не так ли? 💎','Подруга бы так не поскупилась','Я привыкла к лучшему...'],
+  caring:['Мне нужно чувствовать твою заботу 🌸','Ты думаешь обо мне?','Главное — внимание, не деньги.'],
+  status:['Статус важен, не забывай 👑','Что скажут мои подписчики?','Ты должен соответствовать!'],
+  trust:['Доверие строится медленно... 🤝','Ты честный человек?','Я должна тебе доверять.'],
+};
 function showNextDemand(){
   const b=BATTLE;
   if(b.round>=5||b.heroHP<=0||b.girlHP<=0){endBattle();return;}
   const dem=b.demands[b.round];
+  // Show personality comment
+  const personality=b.girl.personality;
+  const lines=PERSONALITY_BATTLE_LINES[personality]||[];
+  const cEl=document.getElementById('bDemandComment');
+  if(cEl&&lines.length){cEl.textContent=lines[b.round%lines.length];}
   document.getElementById('bDemandEmoji').textContent=dem.emoji;
   document.getElementById('bDemandName').textContent=dem.name;
   // Type tag
