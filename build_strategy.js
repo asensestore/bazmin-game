@@ -969,19 +969,25 @@ function playCard(idx){
     showPhone('Карта уже использована!');return;
   }
   const dem=b.demands[b.round];
+  const isCounter=!!(COUNTER_BONUS[dem.type]&&COUNTER_BONUS[dem.type].includes(card.id));
   let mult=1;
-  if(COUNTER_BONUS[dem.type]&&COUNTER_BONUS[dem.type].includes(card.id))mult=1.8;
+  if(isCounter)mult=1.8;
   else if(card.type===dem.type)mult=1.4;
+  // Combo: two counter cards in a row = bonus
+  const comboMult=(isCounter&&b.lastWasCounter)?1.4:1;
+  if(isCounter&&b.lastWasCounter)spawnParticles(W/2,H*0.6,'win');
+  b.lastWasCounter=isCounter;
   // Wingman bonus
   const wingBonus=G.units.includes('wingman')?1.2:1;
-  const attack=Math.round(card.power*mult*wingBonus*(1+G.stats.charisma*.05));
+  const attack=Math.round(card.power*mult*comboMult*wingBonus*(1+G.stats.charisma*.05));
   const defense=Math.round(dem.power*(1-(G.charmBuff>0?.1:0)));
   const net=attack-defense;
   const logEl=document.getElementById('bLog');
   if(net>0){
     b.girlHP=Math.max(0,b.girlHP-net);b.score+=net;
-    const pct=mult>=1.8?'🎯 Идеально!':mult>=1.4?'👍 Хорошо':wingBonus>1?'🤝 Вингмен помог!':'🙂 Нейтрально';
-    logEl.textContent=pct+' +'+net;logEl.style.color='#69f0ae';
+    let pct=mult>=1.8?'🎯 Идеально!':mult>=1.4?'👍 Хорошо':wingBonus>1?'🤝 Вингмен помог!':'🙂 Нейтрально';
+    if(comboMult>1)pct='🔥 КОМБО! '+pct;
+    logEl.textContent=pct+' +'+net;logEl.style.color=comboMult>1?'#ffd740':'#69f0ae';
     haptic('success');
   } else {
     b.heroHP=Math.max(0,b.heroHP+net);
