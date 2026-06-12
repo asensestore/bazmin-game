@@ -856,37 +856,37 @@ function playSFX(type){
 }
 
 // ── Ambient music ─────────────────────────────────────────────────────────────
-let bgMusic={node:null,gain:null,on:false};
-const AMBIENT_NOTES=[220,261,294,330,349,392,440,494]; // A minor scale
-let bgNoteIdx=0,bgNoteTimer=null;
+let bgMusic={gain:null,on:false};
+// Chord progression: Am - F - C - G (A minor romantic)
+const BG_CHORDS=[
+  [220,261,330],[174,220,261],[130,164,196],[196,246,294]
+];
+let bgChordIdx=0,bgNoteTimer=null;
 function startBGMusic(){
   if(bgMusic.on)return;
   const ac=getAC();if(!ac)return;
   bgMusic.on=true;
-  bgMusic.gain=ac.createGain();
-  bgMusic.gain.gain.setValueAtTime(0,ac.currentTime);
-  bgMusic.gain.gain.linearRampToValueAtTime(0.04,ac.currentTime+2);
-  bgMusic.gain.connect(ac.destination);
-  function playNote(){
+  const master=ac.createGain();master.gain.setValueAtTime(0,ac.currentTime);
+  master.gain.linearRampToValueAtTime(0.03,ac.currentTime+3);
+  master.connect(ac.destination);bgMusic.gain=master;
+  function playChord(){
     if(!bgMusic.on||!bgMusic.gain)return;
-    try{
-      const o=ac.createOscillator();const g2=ac.createGain();
-      o.connect(g2);g2.connect(bgMusic.gain);
-      const note=AMBIENT_NOTES[bgNoteIdx%AMBIENT_NOTES.length];
-      bgNoteIdx++;
-      const oct=Math.random()<.3?2:1;
-      o.type='sine';o.frequency.value=note*oct;
-      const dur=1.8+Math.random()*1.2;
-      const now2=ac.currentTime;
-      g2.gain.setValueAtTime(0,now2);
-      g2.gain.linearRampToValueAtTime(.6,now2+.2);
-      g2.gain.linearRampToValueAtTime(0,now2+dur);
-      o.start(now2);o.stop(now2+dur+.1);
-    }catch(e){}
-    bgNoteTimer=setTimeout(playNote,(1200+Math.random()*800));
+    const chord=BG_CHORDS[bgChordIdx%BG_CHORDS.length];bgChordIdx++;
+    const now2=ac.currentTime;const dur=3.5+Math.random();
+    chord.forEach((freq,i)=>{
+      try{
+        const o=ac.createOscillator();const g2=ac.createGain();
+        o.connect(g2);g2.connect(master);
+        o.type='sine';o.frequency.value=freq;
+        g2.gain.setValueAtTime(0,now2+i*.05);
+        g2.gain.linearRampToValueAtTime(.4,now2+i*.05+.3);
+        g2.gain.linearRampToValueAtTime(0,now2+dur);
+        o.start(now2+i*.05);o.stop(now2+dur+.1);
+      }catch(e){}
+    });
+    bgNoteTimer=setTimeout(playChord,(dur-0.5)*1000);
   }
-  // delay first note slightly
-  bgNoteTimer=setTimeout(playNote,1000);
+  bgNoteTimer=setTimeout(playChord,800);
 }
 function toggleMusic(){
   const btn=document.getElementById('musicBtn');
