@@ -207,6 +207,7 @@ canvas{display:block;touch-action:none}
     <div id="bDemand">
       <div id="bDemandEmoji">?</div>
       <div id="bDemandName">Ждём...</div>
+      <div id="bDemandType" style="display:inline-block;margin-top:4px;padding:2px 8px;border-radius:8px;font-size:9px;font-weight:700;letter-spacing:.5px;background:rgba(244,67,54,.2);color:#ff8a80"></div>
       <div id="bDemandPow"></div>
     </div>
     <div id="bLog"></div>
@@ -1073,6 +1074,10 @@ function showNextDemand(){
   const dem=b.demands[b.round];
   document.getElementById('bDemandEmoji').textContent=dem.emoji;
   document.getElementById('bDemandName').textContent=dem.name;
+  // Type tag
+  const typeLabels={luxury:'Роскошь',romance:'Романтика',attention:'Внимание',trust:'Доверие',mood:'Настроение',experience:'Опыт',status:'Статус',sweet:'Сладкое',affection:'Нежность'};
+  const typeEl=document.getElementById('bDemandType');
+  if(typeEl){typeEl.textContent=typeLabels[dem.type]||dem.type;}
   document.getElementById('bDemandPow').textContent=dem.desc||('Сила: '+dem.power);
   // Show weakness hint
   const counters=COUNTER_BONUS[dem.type]||[];
