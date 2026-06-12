@@ -222,10 +222,14 @@ canvas{display:block;touch-action:none}
 
 <!-- GAME OVER -->
 <div id="goScreen" class="screen">
+  <div id="goEmoji" style="font-size:48px;line-height:1"></div>
   <div id="goTitle" class="title"></div>
-  <div id="goSub" style="font-size:11px;color:#aaa;text-align:center;max-width:280px"></div>
+  <div id="goSub" style="font-size:11px;color:#aaa;text-align:center;max-width:280px;line-height:1.6"></div>
   <div id="goStats" style="background:#111120;border:1px solid #222;border-radius:12px;padding:14px;width:100%;max-width:280px;font-size:11px;line-height:1.8;color:#ccc"></div>
-  <button class="btn" onclick="location.reload()">🔄 Играть снова</button>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:280px">
+    <button class="btn" onclick="location.reload()">🔄 Снова</button>
+    <button class="btn" id="shareBtn" onclick="shareResult()" style="border-color:#29b6f6;color:#29b6f6;font-size:11px;padding:8px 18px">📤 Поделиться</button>
+  </div>
 </div>
 
 <script>
@@ -1096,14 +1100,29 @@ function triggerWedding(){
   } else {
     ending='💸 Банкрот';subtitle='Алиса ушла к бизнесмену. Говорит ты не тот уровень. Мама плачет.';
   }
+  const emojiMap={'💎 Идеальный муж!':'💍','😅 Базовый минимум':'😅','💸 Банкрот':'💸'};
+  document.getElementById('goEmoji').textContent=emojiMap[ending]||'🎭';
   document.getElementById('goTitle').textContent=ending;
   document.getElementById('goSub').textContent=subtitle;
   document.getElementById('goStats').innerHTML=
-    '💰 Денег: '+money.toLocaleString('ru')+'₽<br>'+
-    '❤️ Отношения: '+rel+'%<br>'+
-    '🧠 Репутация: '+rep+'<br>'+
-    '🏆 Ход: '+G.turn+' (День '+G.day+')';
+    '💰 Денег: '+money.toLocaleString('ru')+'₽ &nbsp;|&nbsp; ❤️ Отношения: '+rel+'%<br>'+
+    '🧠 Репутация: '+rep+' &nbsp;|&nbsp; 🏆 День '+G.day+' (ход '+G.turn+')';
   document.getElementById('goScreen').classList.add('active');
+  playSFX(rel>=40?'win':'fail');
+  setTimeout(()=>spawnParticles(W/2,H/2,rel>=70?'win':'hearts'),300);
+}
+
+function shareResult(){
+  const ending=document.getElementById('goTitle').textContent;
+  const stats='💰 '+G.money.toLocaleString('ru')+'₽ ❤️ '+G.rel+'% 🧠 '+G.rep;
+  const text='Я прошёл БАЗОВЫЙ МИНИМУМ! '+ending+'\n'+stats+'\n▶️ Играй: https://t.me/bazmin_game';
+  if(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.openTelegramLink){
+    Telegram.WebApp.openTelegramLink('https://t.me/share/url?url=https://t.me/bazmin_game&text='+encodeURIComponent(text));
+  } else if(navigator.share){
+    navigator.share({title:'Базовый Минимум',text});
+  } else {
+    navigator.clipboard&&navigator.clipboard.writeText(text).then(()=>showPhone('Скопировано! 📋'));
+  }
 }
 
 // ── Dialog system ─────────────────────────────────────────────────────────────
