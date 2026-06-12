@@ -881,7 +881,7 @@ function selectHex(col,row){
     const btn=document.getElementById('hiBtn');
     btn.style.display='block';
     let label='Войти';
-    if(obj.price)label=\`Купить (\${G.discountTimer>0?Math.round(obj.price*.7):obj.price}₽)\`;
+    if(obj.price)label=\`Купить (\${(G.discountTimer>0||G.ch?.bonus==='discount')?Math.round(obj.price*.75):obj.price}₽)\`;
     else if(obj.cost)label=\`Посетить (\${obj.cost}₽)\`;
     btn.textContent=label;
     el.style.display='block';
@@ -928,7 +928,7 @@ function hexAction(){
   // Shop
   if(obj.effect&&obj.effect.startsWith('card_')){
     const cardId=obj.effect.replace('card_','');
-    const price=G.discountTimer>0?Math.round((obj.price||0)*.7):(obj.price||0);
+    const price=(G.discountTimer>0||G.ch?.bonus==='discount')?Math.round((obj.price||0)*.75):(obj.price||0);
     if(G.money<price){showPhone('Нет денег! 💸');haptic('error');return;}
     G.money-=price;
     if(!G.cards.includes(cardId))G.cards.push(cardId);
@@ -937,11 +937,11 @@ function hexAction(){
   } else if(obj.type==='metro'){
     showMetroMenu();return;
   } else if(obj.type==='gym'){
-    const cost=G.discountTimer>0?Math.round((obj.cost||0)*.7):(obj.cost||0);
+    const cost=(G.discountTimer>0||G.ch?.bonus==='discount')?Math.round((obj.cost||0)*.75):(obj.cost||0);
     if(G.money<cost){showPhone('Нет денег! 💸');return;}
     G.money-=cost;G.charmBuff=3;G.stats.charisma++;showPhone('💪 Харизма +1 на 3 хода!');haptic('success');
   } else if(obj.type==='salon'){
-    const cost=G.discountTimer>0?Math.round((obj.cost||0)*.7):(obj.cost||0);
+    const cost=(G.discountTimer>0||G.ch?.bonus==='discount')?Math.round((obj.cost||0)*.75):(obj.cost||0);
     if(G.money<cost){showPhone('Нет денег! 💸');return;}
     G.money-=cost;G.looksBuff=3;G.stats.looks++;showPhone('💅 Внешность +1 на 3 хода!');haptic('success');
   } else if(obj.type==='park'){
@@ -951,21 +951,21 @@ function hexAction(){
   } else if(obj.type==='mom'){
     startMomBattle();return;
   } else if(obj.bonus==='energy'){
-    const cost=G.discountTimer>0?Math.round((obj.cost||0)*.7):(obj.cost||0);
+    const cost=(G.discountTimer>0||G.ch?.bonus==='discount')?Math.round((obj.cost||0)*.75):(obj.cost||0);
     if(G.money<cost){showPhone('Нет денег!');return;}
     G.money-=cost;G.energy=G.maxEnergy;showPhone('🍲 Поел, энергия восстановлена!');haptic('success');
   } else if(obj.bonus==='charisma'){
-    const cost=G.discountTimer>0?Math.round((obj.cost||0)*.7):(obj.cost||0);
+    const cost=(G.discountTimer>0||G.ch?.bonus==='discount')?Math.round((obj.cost||0)*.75):(obj.cost||0);
     if(G.money<cost){showPhone('Нет денег!');return;}
     G.money-=cost;G.charmBuff=2;if(!G.cards.includes('dinner'))G.cards.push('dinner');
     showPhone('🍜 Отличный ужин! +Харизма, получена карта Ужин');haptic('success');
   } else if(obj.bonus==='dinner'){
-    const cost=G.discountTimer>0?Math.round((obj.cost||0)*.7):(obj.cost||0);
+    const cost=(G.discountTimer>0||G.ch?.bonus==='discount')?Math.round((obj.cost||0)*.75):(obj.cost||0);
     if(G.money<cost){showPhone('Нет денег!');return;}
     G.money-=cost;if(!G.cards.includes('dinner'))G.cards.push('dinner');
     showPhone('🍱 Романтический ужин! Карта Ужин добавлена.');haptic('success');
   } else if(obj.bonus==='rep'){
-    const cost=G.discountTimer>0?Math.round((obj.cost||0)*.7):(obj.cost||0);
+    const cost=(G.discountTimer>0||G.ch?.bonus==='discount')?Math.round((obj.cost||0)*.75):(obj.cost||0);
     if(G.money<cost){showPhone('Нет денег!');return;}
     G.money-=cost;G.rep=Math.min(100,G.rep+15);
     showPhone('🥂 Prestige! +15 Репутации');haptic('success');
@@ -1127,8 +1127,9 @@ function playCard(idx){
   const comboMult=(isCounter&&b.lastWasCounter)?1.4:1;
   if(isCounter&&b.lastWasCounter)spawnParticles(W/2,H*0.6,'win');
   b.lastWasCounter=isCounter;
-  // Critical hit: 20% chance on counter cards
-  const isCrit=isCounter&&Math.random()<0.2;
+  // Critical hit: 20% base (30% for Vova — sport bonus)
+  const critChance=G.ch?.bonus==='sport'?0.3:0.2;
+  const isCrit=isCounter&&Math.random()<critChance;
   const critMult=isCrit?2:1;
   if(isCrit)spawnParticles(W/2,H*0.5,'stars');
   // Wingman bonus
