@@ -145,6 +145,7 @@ canvas{display:block;touch-action:none}
 <!-- HUD -->
 <div id="hud">
   <div id="hudTop">
+    <img id="hudFace" style="width:28px;height:28px;border-radius:50%;border:1.5px solid #ff6b9d;object-fit:cover;flex-shrink:0" src="" alt="" onerror="this.style.display='none'">
     <span class="hstat" id="hMoney">💰 0₽</span>
     <span class="hstat" id="hEnergy">💪 10</span>
     <span class="hstat" id="hRel">❤️ 0</span>
@@ -956,7 +957,11 @@ function updateBattleHUD(){
     // Highlight if good counter
     const dem=b.demands[b.round];
     if(dem&&COUNTER_BONUS[dem.type]&&COUNTER_BONUS[dem.type].includes(card.id))div.classList.add('good');
-    div.innerHTML=`<div class="bCardEmoji">${card.emoji}</div><div class="bCardName">${card.name}</div><div class="bCardPow">${card.power} силы</div>`;
+    // Card type color accent
+    const typeColors={attention:'#4fc3f7',mood:'#ffb74d',affection:'#f48fb1',romance:'#e91e63',luxury:'#ffd740',status:'#9c27b0',experience:'#69f0ae',generic:'#aaa'};
+    const tc=typeColors[card.type]||'#aaa';
+    div.style.borderColor=div.classList.contains('good')?'#69f0ae':tc+'66';
+    div.innerHTML=`<div class="bCardEmoji">${card.emoji}</div><div class="bCardName" style="color:${tc}">${card.name}</div><div class="bCardPow">${card.power} силы</div>`;
     div.onclick=()=>playCard(i);cc.appendChild(div);
   });
 }
@@ -1699,6 +1704,9 @@ function startGame(mode){
   G.mode=mode;
   document.getElementById('startScreen').classList.remove('active');
   document.getElementById('hud').style.display='flex';
+  // Set HUD portrait
+  const hudFace=document.getElementById('hudFace');
+  if(hudFace&&G.ch)hudFace.src=FD[G.ch.face]||'';
   W=c.width=window.innerWidth;H=c.height=window.innerHeight;
   const mmEl=document.getElementById('mm');
   mmEl.style.cssText='position:fixed;bottom:60px;right:8px;width:80px;height:80px;border:1px solid #333;border-radius:6px;z-index:25';
