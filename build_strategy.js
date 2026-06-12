@@ -484,6 +484,16 @@ const COUNTER_BONUS={luxury:['ring','luxury','gift'],romance:['bouquet','bouquet
   status:['ring','luxury'],sweet:['choc','gift'],affection:['hug','dance','compliment']};
 
 // ── Girls on map ─────────────────────────────────────────────────────────────
+// Opening lines by personality type (shown before battle)
+const GIRL_OPENERS={
+  romantic:['Ты такой романтичный... Посмотрим, что ты умеешь 💕','Мечтала о такой встрече! Докажи, что ты не как все 🌹','Звёзды сегодня красивые... А ты?'],
+  intellectual:['Прежде чем говорить — докажи, что умеешь слушать 📚','Интересно, умеешь ли ты поддержать умный разговор?','Читал Достоевского? Я тебя проверю 😊'],
+  adventurous:['Эй! Не стой на месте, давай что-нибудь сделаем! 🏃','Скучно? Тогда за мной! Я знаю классное место 🗺','Жизнь слишком коротка для скуки. Удиви меня!'],
+  materialistic:['Ммм, интересно... А у тебя есть вкус? 💎','Подожди... Это что, дешёвые часы? Шутка, посмотрим 😂','Я люблю красивые вещи. Что ты можешь предложить?'],
+  caring:['Ты такой... заботливый на вид? Или нет? 🌸','Мне важно чувствовать себя особенной. Умеешь?','Главное — внимание. Ты меня слышишь? 👂'],
+  status:['Знаешь, я бываю только в лучших местах 👑','Подписчики смотрят — не облажайся! 😎','Ты вообще кто? Расскажи о себе.'],
+  trust:['Я ценю честных людей. Ты честный? 🤝','Сначала надо узнать тебя получше...','Доверие строится медленно. Начнём?'],
+};
 const GIRL_DATA=[
   {name:'Алиса',face:'arina',color:'#ff6b9d',personality:'romantic',desc:'Романтичная 💕 Любит комплименты',bias:['romance','attention']},
   {name:'Катя',face:'lilya',color:'#f48fb1',personality:'intellectual',desc:'Умная 📚 Ценит беседы',bias:['mood','experience']},
@@ -864,7 +874,15 @@ function moveHeroTo(col,row){
     const npc=NPCS.find(n=>!n.met&&n.col===col&&n.row===row);
     if(npc){npc.met=true;npc.onMeet();playSFX('event');spawnParticles(W/2,H/2,'stars');return;}
     const girl=GIRLS.find(gi=>!gi.beaten&&gi.col===col&&gi.row===row);
-    if(girl)startBattle(girl);
+    if(girl){
+      // Pre-battle opener based on personality
+      const openers=GIRL_OPENERS[girl.personality]||['Привет! Готов?'];
+      const opener=openers[Math.floor(Math.random()*openers.length)];
+      showDialog(girl.name,opener,[
+        {text:'Познакомимся 😊',rel:0,pts:0,response:'Ладно, посмотрим... 😊'},
+        {text:'Конечно, готов!',rel:0,pts:0,response:'Хорошо. Начнём! 🌟'},
+      ],()=>startBattle(girl));
+    }
   },400);
   render();
 }
