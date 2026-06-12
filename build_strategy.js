@@ -484,32 +484,68 @@ function revealFog(col,row,radius){
 }
 
 // ── Random events ─────────────────────────────────────────────────────────────
+// Events with choices (dialog-based)
 const REVENTS=[
-  {title:'📱 Бывшая написала!',desc:'Нервничаешь весь ход...',e:()=>{G.rel=Math.max(0,G.rel-10);showPhone('Бывшая написала... -10 к отношениям 😰');}},
-  {title:'💸 Мама прислала 5000₽!',desc:'Удача!',e:()=>{G.money+=5000;showPhone('+5000₽ от мамы! 💕');}},
-  {title:'🍺 Друзья зовут в бар',desc:'Идёшь — энергия растёт, ходы этот день -1',e:()=>{G.energy=Math.min(G.maxEnergy,G.energy+3);G.moves=Math.max(1,G.moves-1);showPhone('Сходил в бар: +3 энергии, -1 ход 🍺');}},
-  {title:'🛍 Скидки в WildBerry!',desc:'Все покупки -30% на 3 хода',e:()=>{G.discountTimer=3;showPhone('WildBerry: скидки -30%! 🛍');}},
-  {title:'👛 Нашёл кошелёк!',desc:'+2000₽',e:()=>{G.money+=2000;showPhone('+2000₽ — нашёл кошелёк! 🤑');}},
-  {title:'🚔 Штраф за парковку',desc:'-1000₽',e:()=>{G.money=Math.max(0,G.money-1000);showPhone('-1000₽ штраф 😤');}},
-  {title:'🚗 Пробки на МКАД',desc:'Теряешь 1 ход',e:()=>{G.moves=Math.max(1,G.moves-1);showPhone('Пробки! -1 ход 🚗');}},
-  {title:'💪 Мотивация!',desc:'+2 Энергии',e:()=>{G.energy=Math.min(G.maxEnergy+2,G.energy+2);showPhone('Мотивация! +2 Энергии 💪');}},
+  {title:'📱 Бывшая написала!',dialog:true,
+    text:'Бывшая: "Привет, как дела? Соскучилась..." Что делаешь?',
+    choices:[
+      {text:'Игнорирую 🙅',rel:0,pts:0,response:'Правильно! Нечего отвечать.'},
+      {text:'Отвечаю по-доброму',rel:-5,pts:0,response:'Алиса нашла переписку... -5 к отношениям'},
+      {text:'Блокирую сразу',rel:+3,pts:0,response:'Молодец! +3 к отношениям с Алисой'},
+    ]},
+  {title:'💸 Мама прислала деньги!',dialog:false,e:()=>{G.money+=5000;showPhone('+5000₽ от мамы! 💕');playSFX('buy');}},
+  {title:'🍺 Друзья зовут в бар',dialog:true,
+    text:'Друзья: "Пятница! Бар! Не приходи — потеряешь нас!" Идёшь?',
+    choices:[
+      {text:'Иду! Один вечер не считается 🍺',
+        e:()=>{G.energy=Math.min(G.maxEnergy,G.energy+3);G.moves=Math.max(1,G.moves-1);G.rel=Math.max(0,G.rel-5);},
+        response:'Отлично погуляли! +3 энергии, -1 ход, -5 к отношениям'},
+      {text:'Нет, у меня дела',
+        e:()=>{G.rep=Math.min(100,G.rep+3);},
+        response:'Друзья уважают твой выбор. +3 Репутации'},
+    ]},
+  {title:'🛍 Скидки в WildBerry!',dialog:false,e:()=>{G.discountTimer=3;showPhone('WildBerry: скидки -30% на 3 хода! 🛍');playSFX('event');}},
+  {title:'👛 Нашёл кошелёк!',dialog:true,
+    text:'На улице лежит кошелёк с 3000₽ и паспортом. Что делаешь?',
+    choices:[
+      {text:'Беру деньги, выброшу кошелёк',e:()=>{G.money+=3000;},response:'+3000₽. Но совесть немного гложет...'},
+      {text:'Сдаю в полицию',e:()=>{G.rep=Math.min(100,G.rep+8);},response:'Репутация растёт! +8 🧠 Репутации'},
+      {text:'Оставляю как есть',e:()=>{},response:'Сделал вид что не заметил.'},
+    ]},
+  {title:'🚔 Штраф за парковку',dialog:false,e:()=>{G.money=Math.max(0,G.money-1500);showPhone('-1500₽ штраф за парковку 😤');}},
+  {title:'🚗 Пробки на МКАД',dialog:false,e:()=>{G.moves=Math.max(1,G.moves-1);showPhone('Пробки! -1 ход 🚗');}},
+  {title:'💪 Встретил тренера',dialog:true,
+    text:'Знакомый тренер предлагает бесплатную тренировку. Идёшь?',
+    choices:[
+      {text:'Да, хочу поработать над собой!',e:()=>{G.stats.charisma++;G.energy=Math.max(1,G.energy-1);},response:'Отличная тренировка! +1 Харизма, -1 Энергия'},
+      {text:'Нет времени, потом',e:()=>{},response:'Ладно, в следующий раз.'},
+    ]},
+  {title:'🎁 Её День Рождения!',dialog:true,
+    text:'Алиса намекала... сегодня её день рождения! Срочно!',
+    choices:[
+      {text:'Покупаю самое дорогое! 💎',e:()=>{playSFX(G.money>=5000?'buy':'fail');if(G.money>=5000){G.money-=5000;G.rel=Math.min(100,G.rel+20);return'+20 к отношениям! 💕';}else{G.rel=Math.max(0,G.rel-15);return'Денег нет... -15 к отношениям 😭';}},response:'Смотришь на ценник...'},
+      {text:'Цветы и торт 🎂',e:()=>{G.money=Math.max(0,G.money-500);G.rel=Math.min(100,G.rel+8);},response:'+8 к отношениям. Она рада, но ожидала больше...'},
+      {text:'Ничего не подарю',e:()=>{G.rel=Math.max(0,G.rel-20);},response:'-20 к отношениям. Она ОЧЕНЬ обиделась. 😤'},
+    ]},
 ];
 let evCooldown=0;
 function tryEvent(){
   if(evCooldown>0){evCooldown--;return;}
-  if(Math.random()<.25){
+  if(Math.random()<.28){
     const ev=REVENTS[Math.floor(Math.random()*REVENTS.length)];
-    showEvent(ev);evCooldown=3;
+    if(ev.dialog){
+      // Map event choices to showDialog format; e() runs as fn (at click time, dynamic response)
+      const mapped=ev.choices.map(c=>({
+        text:c.text,rel:c.rel||0,pts:c.pts||0,
+        response:c.response||'...',
+        fn:c.e||null
+      }));
+      showDialog(ev.title,ev.text,mapped,(idx)=>{updateHUD();render();});
+    } else {
+      ev.e();playSFX('event');
+    }
+    evCooldown=4;
   }
-}
-
-function showEvent(ev){
-  const el=document.getElementById('evToast');
-  document.getElementById('evTitle').textContent=ev.title;
-  document.getElementById('evDesc').textContent=ev.desc;
-  el.style.display='block';setTimeout(()=>el.classList.add('show'),10);
-  ev.e();
-  clearTimeout(el._t);el._t=setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.style.display='none',400);},3000);
 }
 
 function showPhone(t){const el=document.getElementById('phone');el.textContent=t;el.style.display='block';clearTimeout(el._t);el._t=setTimeout(()=>el.style.display='none',3200);}
@@ -594,8 +630,12 @@ function moveHeroTo(col,row){
   revealFog(col,row,3);
   selectedHex=null;reachSet=null;
   updateHUD();playSFX('move');
-  // Check if landing on girl
+  // Check if landing on girl or тёща
   setTimeout(()=>{
+    // Тёща boss fight (chapter 5)
+    if(G.storyFlags.needTyoshcha&&!G.storyFlags.tyoshchaDefeated&&col===TYOSHCHA_COL&&row===TYOSHCHA_ROW){
+      startTyoshchaBattle();return;
+    }
     const girl=GIRLS.find(gi=>!gi.beaten&&gi.col===col&&gi.row===row);
     if(girl)startBattle(girl);
   },400);
@@ -626,6 +666,14 @@ function selectHex(col,row){
     btn.textContent=label;
     el.style.display='block';
   } else {
+    // Тёща boss
+    if(G.storyFlags&&G.storyFlags.needTyoshcha&&!G.storyFlags.tyoshchaDefeated&&col===TYOSHCHA_COL&&row===TYOSHCHA_ROW){
+      document.getElementById('hiTitle').textContent='👩‍👧 Тёща';
+      document.getElementById('hiDesc').textContent='ФИНАЛЬНЫЙ БОСС · Нужно получить её благословение';
+      const btn=document.getElementById('hiBtn');btn.style.display='block';btn.textContent='⚔️ Поговорить';
+      pendingHexAction={col,row,tyoshcha:true};
+      document.getElementById('hexInfo').style.display='block';return;
+    }
     const girl=GIRLS.find(gi=>!gi.beaten&&gi.col===col&&gi.row===row);
     if(girl){
       document.getElementById('hiTitle').textContent='👩 '+girl.name;
@@ -646,7 +694,7 @@ function selectHex(col,row){
 
 function hexAction(){
   if(!pendingHexAction)return;
-  const {col,row,obj,girl}=pendingHexAction;
+  const {col,row,obj,girl,tyoshcha}=pendingHexAction;
   const k=hexKey(col,row);
   // First move there if not adjacent
   const d=hexDist(G.col,G.row,col,row);
@@ -654,6 +702,7 @@ function hexAction(){
     if(!reachSet||!reachSet.has(k)){showPhone('Нет ходов чтобы добраться!');return;}
     G.moves-=Math.max(1,d);G.col=col;G.row=row;revealFog(col,row,3);
   }
+  if(tyoshcha){startTyoshchaBattle();return;}
   if(girl){startBattle(girl);return;}
   if(!obj)return;
   // Shop
@@ -767,6 +816,27 @@ function startMomBattle(){
   updateBattleHUD();showNextDemand();
 }
 
+// Тёща fixed position in Krasnogorsk
+const TYOSHCHA_COL=17,TYOSHCHA_ROW=5;
+
+function startTyoshchaBattle(){
+  if(G.storyFlags.tyoshchaDefeated)return;
+  haptic('impact');
+  const girl={name:'Тёща',level:6,color:'#e91e63',id:-2};
+  const demands=[
+    {emoji:'🏠',name:'Квартира?',power:70,type:'status',desc:'Тёща: У тебя своя квартира есть?!'},
+    {emoji:'💰',name:'Доходы?',power:75,type:'status',desc:'Тёща: И на что моя дочь жить будет?!'},
+    {emoji:'👨‍👩‍👧',name:'Семья?',power:60,type:'affection',desc:'Тёща: Из какой ты семьи вообще?'},
+    {emoji:'💍',name:'Кольцо?',power:80,type:'gift',desc:'Тёща: Это что, из подземного перехода?!'},
+    {emoji:'🎓',name:'Образование?',power:65,type:'experience',desc:'Тёща: Диплом-то есть хоть?'},
+  ];
+  BATTLE={girl,demands,round:0,heroHP:150,girlHP:300,maxHeroHP:150,maxGirlHP:300,
+    log:'',cards:getBattleCards(),usedCards:new Set(),done:false,score:0,isTyoshcha:true};
+  document.getElementById('bTitle').textContent='👩‍👧 ФИНАЛЬНЫЙ БОСС: Тёща';
+  document.getElementById('battle').style.display='flex';
+  updateBattleHUD();showNextDemand();
+}
+
 function updateBattleHUD(){
   const b=BATTLE;
   document.getElementById('bRound').textContent='Раунд '+(b.round+1)+'/5';
@@ -859,6 +929,15 @@ function endBattle(){
     G.storyFlags.metMom=true;
     const lbl=win?'Родители одобрили! 🎉':'Родители недовольны... 😬';
     document.getElementById('bResultSub').textContent+='\\n'+lbl;
+  }
+  if(b.isTyoshcha){
+    if(win){
+      G.storyFlags.tyoshchaDefeated=true;
+      document.getElementById('bResultSub').textContent='Тёща дала благословение! (нехотя) 💍';
+      setTimeout(()=>{document.getElementById('battle').style.display='none';triggerWedding();},1800);
+    } else {
+      document.getElementById('bResultSub').textContent='Тёща не одобрила... Попробуй снова!';
+    }
   }
   updateHUD();
 }
@@ -974,7 +1053,7 @@ function checkChapter(){
       setTimeout(()=>showDialog('Алиса 💕','[Ты опускаешься на одно колено] Алиса... выйдешь за меня?',[
         {text:'Я хочу провести с тобой всю жизнь!',rel:+30,pts:500,response:'ДА! Тысячу раз да! 💍💕😭'},
         {text:'Нам нужно поговорить...',rel:+5,pts:50,response:'Ты уверен? Окей...'},
-      ],()=>{G.storyFlags.engaged=true;showPhone('Глава 5: Теперь свадьба! Поговори с тёщей в Красногорске');setTimeout(()=>triggerWedding(),3000);}),500);
+      ],()=>{G.storyFlags.engaged=true;G.storyFlags.needTyoshcha=true;showPhone('Глава 5: Найди тёщу в Красногорске и получи её благословение! 👩‍👧');}),500);
     }
   }
 }
@@ -1017,8 +1096,11 @@ function showDialog(charName,text,choices,cb){
     btn.onclick=()=>{
       G.rel=Math.max(0,Math.min(100,(G.rel||0)+c.rel));
       if(c.rel>0)G.rep=Math.min(100,(G.rep||50)+2);
+      // If choice has fn(), call it and use returned string as response (dynamic responses)
+      let resp=c.response||'...';
+      if(c.fn){const r=c.fn();if(typeof r==='string')resp=r;}
       document.getElementById('dlgChar').textContent='💬 '+charName+':';
-      document.getElementById('dlgText').textContent=c.response||'...';
+      document.getElementById('dlgText').textContent=resp;
       cc.innerHTML='';
       const ok=document.createElement('button');ok.className='btn';ok.textContent='Понял 👍';ok.style.cssText='font-size:11px;padding:7px 14px';
       ok.onclick=()=>{box.style.display='none';G.running=true;if(cb)cb(i);};cc.appendChild(ok);
@@ -1171,6 +1253,28 @@ function render(){
     ctx.beginPath();ctx.arc(sx,sy+6,22,0,Math.PI*2);ctx.stroke();
   });
 
+  // Тёща boss (chapter 5, Krasnogorsk)
+  if(G.storyFlags&&G.storyFlags.needTyoshcha&&!G.storyFlags.tyoshchaDefeated){
+    const {x:tx,y:ty}=hexCenter(TYOSHCHA_COL,TYOSHCHA_ROW);
+    const tsx=tx+cam.x,tsy=ty+cam.y;
+    if(G.fog.has(hexKey(TYOSHCHA_COL,TYOSHCHA_ROW))&&tsx>-80&&tsx<W+80&&tsy>-80&&tsy<H+80){
+      // Ominous pulsing red ring
+      const tp=(Math.sin(Date.now()/300)+1)*.5;
+      ctx.strokeStyle=\`rgba(233,30,99,\${.5+tp*.5})\`;ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(tsx,tsy+6,28,0,Math.PI*2);ctx.stroke();
+      // Boss label
+      ctx.fillStyle='rgba(233,30,99,.9)';
+      const lw=ctx.measureText('👩‍👧 ТЁЩА').width+16;
+      ctx.beginPath();ctx.roundRect(tsx-lw/2,tsy-50,lw,18,4);ctx.fill();
+      ctx.fillStyle='#fff';ctx.font='bold 11px system-ui';ctx.textAlign='center';
+      ctx.fillText('👩‍👧 ТЁЩА',tsx,tsy-38);
+      // Character circle
+      ctx.fillStyle='#e91e63';ctx.beginPath();ctx.arc(tsx,tsy-12,18,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#fff';ctx.font='20px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('👩‍👧',tsx,tsy-12);ctx.textBaseline='alphabetic';
+    }
+  }
+
   // Hero (animated)
   {
     const {x,y}=getHeroRenderPos();
@@ -1247,6 +1351,11 @@ function renderMinimap(){
   }
   // Girls
   GIRLS.forEach(gi=>{if(!gi.beaten&&G.fog.has(hexKey(gi.col,gi.row))){mctx.fillStyle='#ff6b9d';mctx.beginPath();mctx.arc(gi.col*sw,gi.row*sh,3,0,Math.PI*2);mctx.fill();}});
+  // Тёща on minimap
+  if(G.storyFlags&&G.storyFlags.needTyoshcha&&!G.storyFlags.tyoshchaDefeated&&G.fog.has(hexKey(TYOSHCHA_COL,TYOSHCHA_ROW))){
+    mctx.fillStyle='#e91e63';mctx.beginPath();mctx.arc(TYOSHCHA_COL*sw,TYOSHCHA_ROW*sh,4,0,Math.PI*2);mctx.fill();
+    mctx.strokeStyle='#fff';mctx.lineWidth=1;mctx.beginPath();mctx.arc(TYOSHCHA_COL*sw,TYOSHCHA_ROW*sh,4,0,Math.PI*2);mctx.stroke();
+  }
   // Hero
   mctx.fillStyle='#4fc3f7';mctx.beginPath();mctx.arc(G.col*sw,G.row*sh,4,0,Math.PI*2);mctx.fill();
   mctx.strokeStyle='#fff';mctx.lineWidth=1;mctx.beginPath();mctx.arc(G.col*sw,G.row*sh,4,0,Math.PI*2);mctx.stroke();
