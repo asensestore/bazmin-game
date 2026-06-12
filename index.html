@@ -671,6 +671,23 @@ function endTurn(){
   render();
   // Story chapter advance
   if(G.mode==='campaign')checkChapter();
+  // Free mode: 30-day challenge
+  if(G.mode==='free'&&G.day>=30&&!G.storyFlags.freeEnded){
+    G.storyFlags.freeEnded=true;
+    const score=G.money+G.rel*200+G.rep*100+G.level*500;
+    const girlsBeaten=GIRLS.filter(g=>g.beaten).length;
+    const rank=score>=50000?'🏆 Легенда!':score>=25000?'⭐ Хорошо':score>=10000?'👍 Неплохо':'😅 Новичок';
+    document.getElementById('goEmoji').textContent=rank.split(' ')[0];
+    document.getElementById('goTitle').textContent='30 дней. '+rank.split(' ').slice(1).join(' ');
+    document.getElementById('goSub').textContent='Свободная игра завершена! Успел всё?';
+    document.getElementById('goStats').innerHTML=
+      '💰 '+G.money.toLocaleString('ru')+'₽ · ❤️ '+G.rel+'% · 🧠 '+G.rep+'<br>'+
+      '💕 Свиданий: '+girlsBeaten+'/'+GIRLS.length+' · 🆙 Уровень: '+G.level+'<br>'+
+      '🏆 Общий счёт: '+score.toLocaleString('ru');
+    document.getElementById('goScreen').classList.add('active');
+    playSFX('win');spawnParticles(W/2,H/2,'win');
+    checkAndSaveBest();
+  }
 }
 
 // ── Sound effects ─────────────────────────────────────────────────────────────
