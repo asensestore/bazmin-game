@@ -1565,6 +1565,22 @@ function render(){
 
   // Particles overlay
   updateParticles(ctx);
+  // Weather ambient particles (rain/snow)
+  {const wx=getWeather();
+  if(wx.id==='rainy'||wx.id==='snowy'){
+    const count=wx.id==='snowy'?2:3;
+    for(let i=0;i<count;i++){
+      if(Math.random()<.3){
+        const rx=Math.random()*W;
+        particles.push({
+          x:rx,y:-10,vx:wx.id==='snowy'?(Math.random()-.5)*.5:0.5+Math.random(),
+          vy:wx.id==='snowy'?0.5+Math.random()*.5:2+Math.random()*2,
+          emoji:wx.id==='snowy'?'❄':'💧',size:8+Math.random()*4,
+          life:60+Math.random()*40,maxLife:100,_env:true
+        });
+      }
+    }
+  }}
   renderMinimap();
 }
 
@@ -1698,7 +1714,8 @@ function spawnParticles(sx,sy,type){
 function updateParticles(ctx){
   particles=particles.filter(p=>{
     p.life--;if(p.life<=0)return false;
-    p.x+=p.vx;p.y+=p.vy;p.vy+=0.06; // slight gravity
+    p.x+=p.vx;p.y+=p.vy;
+    if(!p._env)p.vy+=0.06; // gravity for emitted particles, not env
     const alpha=Math.min(1,p.life/p.maxLife*2);
     ctx.globalAlpha=alpha;
     ctx.font=p.size+'px serif';ctx.textAlign='center';ctx.textBaseline='middle';
