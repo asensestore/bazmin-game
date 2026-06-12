@@ -150,6 +150,7 @@ canvas{display:block;touch-action:none}
 </div>
 <div id="distLabel"></div>
 <div id="turnLabel"></div>
+<div id="questLabel" style="position:fixed;top:52px;left:50%;transform:translateX(-50%);display:none;background:rgba(5,5,20,.88);border:1px solid #ff6b9d44;border-radius:10px;padding:5px 14px;font-size:10px;color:#ff6b9d;z-index:21;pointer-events:none;max-width:280px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
 <div id="hudBot">
   <div id="hexInfo">
     <div class="hiTitle" id="hiTitle">—</div>
@@ -1048,6 +1049,26 @@ function hireUnit(id){
 }
 function closeApt(){document.getElementById('apt').style.display='none';render();}
 
+// ── Quest display ─────────────────────────────────────────────────────────────
+function setQuest(text){
+  const el=document.getElementById('questLabel');
+  if(!el)return;
+  if(text){el.textContent='🎯 '+text;el.style.display='block';}
+  else{el.style.display='none';}
+}
+function updateQuest(){
+  if(G.mode!=='campaign'){setQuest(null);return;}
+  const f=G.storyFlags||{};
+  if(!f.ch1Started)return;
+  if(G.chapter<=1&&!f.ch1Done)setQuest('Познакомься с девушкой в Патриках');
+  else if(G.chapter===2&&!f.ch2Done)setQuest('Купи подарок для Алисы (Патрики)');
+  else if(G.chapter===3&&!f.metMom)setQuest('Найди мамину квартиру в Мытищах');
+  else if(G.chapter===3&&!f.ch3Done)setQuest('Родители ждут тебя!');
+  else if(G.chapter===4&&!f.ch4Done)setQuest('Купи кольцо в Картье (Красногорск)');
+  else if(G.chapter===5&&f.needTyoshcha&&!f.tyoshchaDefeated)setQuest('Найди тёщу в Красногорске!');
+  else setQuest(null);
+}
+
 // ── Story chapters ─────────────────────────────────────────────────────────────
 function checkChapter(){
   if(G.chapter===0&&G.mode==='campaign'){
@@ -1194,6 +1215,7 @@ function updateHUD(){
   // District label
   const dn={patriki:'🥂 Патрики',krasnogorsk:'👑 Красногорск',mytishi:'🏚 Мытищи',ramenki:'🏢 Раменки'}[getDistrict(G.col,G.row)]||'';
   document.getElementById('distLabel').textContent=dn;
+  updateQuest();
 }
 
 // ── Rendering ─────────────────────────────────────────────────────────────────
