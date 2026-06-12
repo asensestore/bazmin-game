@@ -1387,6 +1387,20 @@ function render(){
           // Road marking
           ctx.strokeStyle='rgba(255,255,255,.06)';ctx.lineWidth=1;
           ctx.beginPath();ctx.moveTo(sx-8,sy);ctx.lineTo(sx+8,sy);ctx.stroke();
+        } else if(t===HT.APARTMENT){
+          ctx.font='18px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+          ctx.globalAlpha=.65;ctx.fillText('🏢',sx,sy-2);ctx.globalAlpha=1;
+        } else if(t===HT.HQ){
+          ctx.font='18px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+          ctx.globalAlpha=.8;ctx.fillText('🏠',sx,sy-2);ctx.globalAlpha=1;
+          ctx.font='bold 7px system-ui';ctx.fillStyle='#69f0ae';ctx.textBaseline='top';
+          ctx.fillText('БАЗА',sx,sy+10);ctx.textBaseline='alphabetic';
+        } else if(t===HT.WATER){
+          // Water shimmer
+          const w=(Math.sin(Date.now()/1200+c2*.5)+1)*.5;
+          ctx.globalAlpha=.3+w*.2;
+          ctx.fillStyle='#1a4a8a';ctx.beginPath();
+          ctx.ellipse(sx,sy,12,5,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
         }
       } else {
         // Fog overlay
