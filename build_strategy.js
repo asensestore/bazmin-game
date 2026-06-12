@@ -712,6 +712,7 @@ function endTurn(){
   updateHUD();
   selectedHex=null;reachSet=null;
   render();
+  checkAchievements();
   // Story chapter advance
   if(G.mode==='campaign')checkChapter();
   // Free mode: 30-day challenge
@@ -1105,6 +1106,7 @@ function endBattle(){
     spawnParticles(W/2,H/2,'win');
     gainXP(20+b.score);
     if(b.girl.id>=0){const gi=GIRLS.find(g=>g.id===b.girl.id);if(gi)gi.beaten=true;}
+    setTimeout(()=>checkAchievements(),500);
   } else {
     G.rep=Math.max(0,G.rep-10);
     document.getElementById('bResultTitle').innerHTML='<span style="color:#f44336">💔 Не получилось</span>';
@@ -1132,6 +1134,32 @@ function closeBattle(){
   document.getElementById('battle').style.display='none';
   document.getElementById('bResult').style.display='none';
   BATTLE=null;render();
+}
+
+// ── Achievements ──────────────────────────────────────────────────────────────
+const ACHIEVEMENTS=[
+  {id:'first_date',name:'Первое свидание',emoji:'💕',check:()=>GIRLS.some(g=>g.beaten)},
+  {id:'rich',name:'Богач',emoji:'💰',check:()=>G.money>=50000},
+  {id:'charmer',name:'Чаровник',emoji:'😍',check:()=>G.rel>=80},
+  {id:'famous',name:'Знаменитость',emoji:'⭐',check:()=>G.rep>=90},
+  {id:'explorer',name:'Исследователь',emoji:'🗺',check:()=>Object.keys(G.distStatus).length>=4},
+  {id:'level5',name:'Опытный',emoji:'🆙',check:()=>(G.level||1)>=5},
+  {id:'casanova',name:'Казанова',emoji:'💘',check:()=>GIRLS.filter(g=>g.beaten).length>=6},
+  {id:'engaged',name:'Сделал предложение',emoji:'💍',check:()=>G.storyFlags&&G.storyFlags.engaged},
+  {id:'tyoshcha',name:'Герой семьи',emoji:'👩‍👧',check:()=>G.storyFlags&&G.storyFlags.tyoshchaDefeated},
+  {id:'ideal',name:'Идеальный муж',emoji:'💎',check:()=>G.storyFlags&&G.storyFlags.weddingTriggered&&G.rel>=70&&G.rep>=60&&G.money>=5000},
+];
+function checkAchievements(){
+  const unlocked=JSON.parse(localStorage.getItem('bazmin_ach')||'[]');
+  ACHIEVEMENTS.forEach(ach=>{
+    if(unlocked.includes(ach.id))return;
+    if(ach.check()){
+      unlocked.push(ach.id);
+      localStorage.setItem('bazmin_ach',JSON.stringify(unlocked));
+      showPhone(ach.emoji+' Достижение: '+ach.name+'!');
+      playSFX('win');spawnParticles(W/2,H/3,'stars');
+    }
+  });
 }
 
 // ── Apartment screen ──────────────────────────────────────────────────────────
@@ -1287,6 +1315,7 @@ function triggerWedding(){
   playSFX(rel>=40?'win':'fail');
   setTimeout(()=>spawnParticles(W/2,H/2,rel>=70?'win':'hearts'),300);
   checkAndSaveBest();
+  setTimeout(()=>checkAchievements(),600);
 }
 
 function shareResult(){
