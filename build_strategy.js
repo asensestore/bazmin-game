@@ -472,6 +472,45 @@ function spawnGirls(){
   }));
 }
 
+// ── Wandering NPCs ────────────────────────────────────────────────────────────
+const NPC_TYPES=[
+  {type:'vendor',emoji:'🛒',color:'#4fc3f7',name:'Торговец',
+    onMeet:()=>{const xtra=Math.random()<.5?500:1000;G.money+=xtra;showPhone('Торговец: скидка! +'+xtra+'₽ 🛒');gainXP(5);}},
+  {type:'advisor',emoji:'💡',color:'#ffb74d',name:'Советник',
+    onMeet:()=>{const tips=['Иди в Патрики — там лучшие девушки!','Зарплата растёт с уровнем персонажа','Тёща — финальный босс. Готовься!','Метро сэкономит тебе ходы!','Купи кольцо в Картье для сюжета'];const t=tips[Math.floor(Math.random()*tips.length)];showPhone('💡 Совет: '+t);gainXP(3);}},
+  {type:'bystander',emoji:'🧑',color:'#81c784',name:'Прохожий',
+    onMeet:()=>{if(Math.random()<.4){G.money+=200;showPhone('Прохожий уронил 200₽! 💵');}else{G.energy=Math.min(G.maxEnergy,G.energy+1);showPhone('Прохожий угостил кофе: +1 энергия ☕');}}},
+];
+let NPCS=[];
+function spawnNPCs(){
+  NPCS=[];
+  const positions=[
+    {col:7,row:4},{col:3,row:7},{col:17,row:4},{col:20,row:7},
+    {col:5,row:14},{col:9,row:13},{col:18,row:15},{col:15,row:12},
+  ];
+  positions.forEach((pos,i)=>{
+    const t=NPC_TYPES[i%NPC_TYPES.length];
+    NPCS.push({col:pos.col,row:pos.row,...t,met:false});
+  });
+}
+function updateNPCs(){
+  NPCS.forEach(npc=>{
+    if(npc.met)return;
+    const nb=hexNeighbors(npc.col,npc.row);
+    if(nb.length&&Math.random()<.3){
+      const n=nb[Math.floor(Math.random()*nb.length)];
+      if(MAP[n.row]&&MAP[n.row][n.col]!==HT.WATER&&MAP[n.row][n.col]!==HT.MKAD&&!OBJ_HEXES[hexKey(n.col,n.row)]){
+        npc.col=n.col;npc.row=n.row;
+      }
+    }
+    // Meet hero
+    if(npc.col===G.col&&npc.row===G.row){
+      npc.met=true;npc.onMeet();playSFX('event');
+      spawnParticles(W/2,H/2,'stars');
+    }
+  });
+}
+
 // ── Game state ────────────────────────────────────────────────────────────────
 let G={};
 let FI={};
@@ -602,6 +641,7 @@ function endTurn(){
   if(G.charmBuff>0)G.charmBuff--;
   if(G.looksBuff>0)G.looksBuff--;
   if(G.discountTimer>0)G.discountTimer--;
+  updateNPCs();
   GIRLS.forEach(gi=>{
     // Girls wander slightly
     const nb=hexNeighbors(gi.col,gi.row);
@@ -663,12 +703,15 @@ function moveHeroTo(col,row){
   revealFog(col,row,3);
   selectedHex=null;reachSet=null;
   updateHUD();playSFX('move');
-  // Check if landing on girl or тёща
+  // Check if landing on girl, тёща, or NPC
   setTimeout(()=>{
     // Тёща boss fight (chapter 5)
     if(G.storyFlags.needTyoshcha&&!G.storyFlags.tyoshchaDefeated&&col===TYOSHCHA_COL&&row===TYOSHCHA_ROW){
       startTyoshchaBattle();return;
     }
+    // NPCs
+    const npc=NPCS.find(n=>!n.met&&n.col===col&&n.row===row);
+    if(npc){npc.met=true;npc.onMeet();playSFX('event');spawnParticles(W/2,H/2,'stars');return;}
     const girl=GIRLS.find(gi=>!gi.beaten&&gi.col===col&&gi.row===row);
     if(girl)startBattle(girl);
   },400);
@@ -1346,6 +1389,21 @@ function render(){
     ctx.beginPath();ctx.arc(sx,sy+6,22,0,Math.PI*2);ctx.stroke();
   });
 
+  // Wandering NPCs
+  NPCS.forEach(npc=>{
+    if(npc.met)return;
+    const {x,y}=hexCenter(npc.col,npc.row);
+    const sx=x+cam.x,sy=y+cam.y;
+    if(!G.fog.has(hexKey(npc.col,npc.row)))return;
+    if(sx<-60||sx>W+60||sy<-60||sy>H+60)return;
+    const nb=(Math.sin(Date.now()/500)+1)*.5;
+    ctx.fillStyle=npc.color+'44';ctx.beginPath();ctx.arc(sx,sy-6,14,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=npc.color;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(sx,sy-6,14,0,Math.PI*2);ctx.stroke();
+    ctx.font='14px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(npc.emoji,sx,sy-6);ctx.textBaseline='alphabetic';
+    ctx.fillStyle='rgba(5,5,20,.8)';ctx.beginPath();ctx.roundRect(sx-22,sy+10,44,12,3);ctx.fill();
+    ctx.fillStyle=npc.color;ctx.font='8px system-ui';ctx.textAlign='center';ctx.fillText(npc.name,sx,sy+19);
+  });
+
   // Тёща boss (chapter 5, Krasnogorsk)
   if(G.storyFlags&&G.storyFlags.needTyoshcha&&!G.storyFlags.tyoshchaDefeated){
     const {x:tx,y:ty}=hexCenter(TYOSHCHA_COL,TYOSHCHA_ROW);
@@ -1557,7 +1615,7 @@ function buildCharSelect(){
 }
 function startGame(mode){
   if(!selectedChar)selectedChar='roman';
-  preloadFaces();generateMap();initG(selectedChar);spawnGirls();
+  preloadFaces();generateMap();initG(selectedChar);spawnGirls();spawnNPCs();
   G.mode=mode;
   document.getElementById('startScreen').classList.remove('active');
   document.getElementById('hud').style.display='flex';
