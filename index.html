@@ -512,17 +512,49 @@ function drawIsoMap(sky){
       else if(tile.t===T.PARK||tile.t===T.TREE||tile.t===T.FOUNTAIN)gc=d.parkColor||'#122012';
       drawDiamond(sx,sy,TW,TH,gc,'rgba(0,0,0,.12)');
 
-      // Road marking
-      if(tile.t===T.ROAD_H){X.strokeStyle='rgba(255,255,255,.1)';X.lineWidth=.5;X.beginPath();X.moveTo(sx-TW/2,sy);X.lineTo(sx+TW/2,sy);X.stroke();}
-      if(tile.t===T.ROAD_V){X.strokeStyle='rgba(255,255,255,.1)';X.lineWidth=.5;X.beginPath();X.moveTo(sx,sy-TH/2);X.lineTo(sx,sy+TH/2);X.stroke();}
+      // Road markings & details
+      if(tile.t===T.ROAD_H){
+        // Centre dashes
+        X.strokeStyle='rgba(255,255,255,.12)';X.lineWidth=.5;
+        X.setLineDash([6,10]);X.beginPath();X.moveTo(sx-TW/2,sy);X.lineTo(sx+TW/2,sy);X.stroke();X.setLineDash([]);
+      }
+      if(tile.t===T.ROAD_V){
+        X.strokeStyle='rgba(255,255,255,.12)';X.lineWidth=.5;
+        X.setLineDash([6,10]);X.beginPath();X.moveTo(sx,sy-TH/2);X.lineTo(sx,sy+TH/2);X.stroke();X.setLineDash([]);
+      }
+      // Crosswalk zebra on intersections
+      if(tile.t===T.ROAD_X){
+        X.globalAlpha=.15;X.fillStyle='#fff';
+        for(let i=-2;i<=2;i++){X.fillRect(sx+i*5-1,sy-TH/2+2,2,TH-4);}
+        X.globalAlpha=1;
+      }
+      // Building shadow on ground (cast east-south)
+      if(tile.t>=T.BLDLOW&&tile.t<=T.BLDPANEL&&sky.a>.3){
+        const bh=(tile.h||1)*7+8;const shadowLen=bh*(1-sky.a*.6)*.6;
+        X.globalAlpha=.08;X.fillStyle='#000';
+        X.beginPath();X.moveTo(sx,sy);X.lineTo(sx+TW/2,sy+TH/2);
+        X.lineTo(sx+TW/2,sy+TH/2+shadowLen);X.lineTo(sx,sy+shadowLen);X.closePath();X.fill();
+        X.globalAlpha=1;
+      }
       if(tile.trafficLight){
         const go=tf===0;
         X.fillStyle='#212121';X.fillRect(sx+8,sy-20,5,14);
         X.fillStyle=go?'#f44336':'#222';X.beginPath();X.arc(sx+10,sy-18,2.5,0,Math.PI*2);X.fill();
         X.fillStyle=go?'#222':'#4caf50';X.beginPath();X.arc(sx+10,sy-11,2.5,0,Math.PI*2);X.fill();
+        // Glow
+        if(!go){X.globalAlpha=.25;const gg=X.createRadialGradient(sx+10,sy-11,0,sx+10,sy-11,10);gg.addColorStop(0,'#4caf50');gg.addColorStop(1,'transparent');X.fillStyle=gg;X.fillRect(sx,sy-21,20,20);X.globalAlpha=1;}
       }
     }
   }
+
+  // Ambient particles: leaves/dust floating around
+  if(!G._ambParts)G._ambParts=Array.from({length:20},()=>({x:R(0,W),y:R(0,H),vx:R(-.3,.3),vy:R(-.5,-.1),a:R(.1,.4),s:R(2,4),e:P(['🍃','·','•','·'])}));
+  G._ambParts.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.a-=.001;
+    if(p.y<-10||p.a<.05){p.x=R(0,W);p.y=H+5;p.a=R(.15,.4);p.vy=R(-.4,-.1);}
+    X.globalAlpha=p.a;X.font=p.s+'px serif';X.textAlign='center';X.fillText(p.e,p.x,p.y);
+  });
+  X.globalAlpha=1;
 
   // Objects pass (back-to-front)
   for(let y=0;y<GRID_H;y++){
