@@ -250,6 +250,7 @@ const HTML = `
   <div id="goTitle" class="title"></div>
   <div id="goSub" style="font-size:11px;color:#aaa;text-align:center;max-width:280px;line-height:1.6"></div>
   <div id="goStats" style="background:#111120;border:1px solid #222;border-radius:12px;padding:14px;width:100%;max-width:280px;font-size:11px;line-height:1.8;color:#ccc"></div>
+  <div id="goLeaderboard" style="background:#111120;border:1px solid #333;border-radius:12px;padding:10px 14px;width:100%;max-width:280px;font-size:10px;display:none"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:280px">
     <button class="btn" onclick="location.reload()">🔄 Снова</button>
     <button class="btn" id="shareBtn" onclick="shareResult()" style="border-color:#29b6f6;color:#29b6f6;font-size:11px;padding:8px 18px">📤 Поделиться</button>
@@ -1967,6 +1968,25 @@ function checkAndSaveBest(){
   if(!b.rel||G.rel>b.rel){b.rel=G.rel;b.relChar=G.ch.name;changed=true;}
   if(!b.level||G.level>b.level){b.level=G.level;b.levelChar=G.ch.name;changed=true;}
   if(!b.day||G.day>b.day){b.day=G.day;b.dayChar=G.ch.name;changed=true;}
+  // Top-5 leaderboard
+  const totalScore=G.money+G.rel*200+G.rep*100+G.level*500+GIRLS.filter(g=>g.beaten).length*500;
+  try{
+    let hs=JSON.parse(localStorage.getItem('bazmin_hs')||'[]');
+    hs.push({score:totalScore,name:G.ch.name,rel:G.rel,money:G.money,day:G.day,mode:G.mode,ts:Date.now()});
+    hs.sort((a2,b2)=>b2.score-a2.score);hs=hs.slice(0,5);
+    localStorage.setItem('bazmin_hs',JSON.stringify(hs));
+    // Show leaderboard on game over
+    const lbEl=document.getElementById('goLeaderboard');
+    if(lbEl&&hs.length){
+      const medals=['🥇','🥈','🥉','4.','5.'];
+      lbEl.style.display='block';
+      lbEl.innerHTML='<div style="color:#ffd740;font-weight:700;margin-bottom:6px">🏆 Лучшие результаты</div>'+
+        hs.map((h,i)=>{
+          const isCur=(h.ts===hs[hs.indexOf(h)].ts&&h.score===totalScore&&h.name===G.ch.name);
+          return\`<div style="\${h.score===totalScore&&h.name===G.ch.name?'color:#ff6b9d;':'color:#aaa;'}">\${medals[i]} \${h.name}: \${h.score.toLocaleString('ru')} (❤️\${h.rel}% 💰\${Math.round(h.money/1000)}k)</div>\`;
+        }).join('');
+    }
+  }catch(e){}
   if(changed)saveBest(b);
   return b;
 }
