@@ -770,35 +770,37 @@ function showNextDemand(){
 function playCard(idx){
   const b=BATTLE;if(b.done)return;
   const card=b.cards[idx];
-  if(b.usedCards.has(card.id)&&FREE_CARDS.includes(card.id)){
-    // Free cards recharge
-  } else if(b.usedCards.has(card.id)){
+  if(!FREE_CARDS.includes(card.id)&&b.usedCards.has(card.id)){
     showPhone('Карта уже использована!');return;
   }
   const dem=b.demands[b.round];
-  // Determine effectiveness
   let mult=1;
   if(COUNTER_BONUS[dem.type]&&COUNTER_BONUS[dem.type].includes(card.id))mult=1.8;
   else if(card.type===dem.type)mult=1.4;
-  const attack=Math.round(card.power*mult*(1+G.stats.charisma*.05));
-  const defense=dem.power;
+  // Wingman bonus
+  const wingBonus=G.units.includes('wingman')?1.2:1;
+  const attack=Math.round(card.power*mult*wingBonus*(1+G.stats.charisma*.05));
+  const defense=Math.round(dem.power*(1-(G.charmBuff>0?.1:0)));
   const net=attack-defense;
+  const logEl=document.getElementById('bLog');
   if(net>0){
-    b.girlHP-=net;b.score+=net;
-    const pct=mult>=1.8?'🎯 Отличный ответ!':mult>=1.4?'👍 Хороший ответ':' Нейтрально';
-    document.getElementById('bLog').textContent=pct+' +'+net+' к обаянию';
+    b.girlHP=Math.max(0,b.girlHP-net);b.score+=net;
+    const pct=mult>=1.8?'🎯 Идеально!':mult>=1.4?'👍 Хорошо':wingBonus>1?'🤝 Вингмен помог!':'🙂 Нейтрально';
+    logEl.textContent=pct+' +'+net;logEl.style.color='#69f0ae';
+    haptic('success');
   } else {
-    b.heroHP+=net; // net is negative so subtract from hero
-    document.getElementById('bLog').textContent='😬 Не то... -'+Math.abs(net)+' обаяния';
+    b.heroHP=Math.max(0,b.heroHP+net);
+    logEl.textContent='😬 Не то... '+net;logEl.style.color='#f44336';
+    haptic('error');
   }
-  b.usedCards.add(card.id);
-  if(!FREE_CARDS.includes(card.id))b.usedCards.add(card.id+'_perm');
+  if(!FREE_CARDS.includes(card.id))b.usedCards.add(card.id);
   b.round++;
-  haptic('light');
+  updateBattleHUD();
   setTimeout(()=>{
+    logEl.style.color='';
     if(b.round>=5||b.heroHP<=0||b.girlHP<=0)endBattle();
-    else{updateBattleHUD();showNextDemand();}
-  },600);
+    else showNextDemand();
+  },800);
 }
 
 function endBattle(){
@@ -927,6 +929,44 @@ function checkChapter(){
       ],()=>{showPhone('Глава 3: Найди Мамину квартиру в Мытищах!');}),500);
     }
   }
+  if(G.chapter===3&&G.storyFlags.metMom&&!G.storyFlags.ch3Done){
+    G.storyFlags.ch3Done=true;G.chapter=4;
+    setTimeout(()=>showDialog('Алиса 💕','Мои родители тебя одобрили... почти. Папа сказал — сначала кольцо! Настоящее, из Картье 💍',[
+      {text:'Куплю самое лучшее!',rel:+20,pts:200,response:'Ты самый лучший! 😍💕'},
+      {text:'Может что-то попроще?',rel:-10,pts:0,response:'Папа будет недоволен...'},
+    ],()=>{showPhone('Глава 4: Купи кольцо в Картье (Красногорск) и вернись к Алисе!');}),500);
+  }
+  if(G.chapter===4&&!G.storyFlags.ch4Done){
+    if(G.cards.includes('ring')){
+      G.storyFlags.ch4Done=true;G.chapter=5;
+      setTimeout(()=>showDialog('Алиса 💕','[Ты опускаешься на одно колено] Алиса... выйдешь за меня?',[
+        {text:'Я хочу провести с тобой всю жизнь!',rel:+30,pts:500,response:'ДА! Тысячу раз да! 💍💕😭'},
+        {text:'Нам нужно поговорить...',rel:+5,pts:50,response:'Ты уверен? Окей...'},
+      ],()=>{G.storyFlags.engaged=true;showPhone('Глава 5: Теперь свадьба! Поговори с тёщей в Красногорске');setTimeout(()=>triggerWedding(),3000);}),500);
+    }
+  }
+}
+
+function triggerWedding(){
+  if(G.storyFlags.weddingTriggered)return;
+  G.storyFlags.weddingTriggered=true;
+  const rel=G.rel,rep=G.rep,money=G.money;
+  let ending,subtitle;
+  if(rel>=70&&rep>=60&&money>=5000){
+    ending='💎 Идеальный муж!';subtitle='Алиса счастлива. Мама рыдает от радости. Даже тёща одобрила. Свадьба была шикарной!';
+  } else if(rel>=40){
+    ending='😅 Базовый минимум';subtitle='Свадьба состоялась. Тёща недовольна, но молчит. Алиса говорит всё нормально.';
+  } else {
+    ending='💸 Банкрот';subtitle='Алиса ушла к бизнесмену. Говорит ты не тот уровень. Мама плачет.';
+  }
+  document.getElementById('goTitle').textContent=ending;
+  document.getElementById('goSub').textContent=subtitle;
+  document.getElementById('goStats').innerHTML=
+    '💰 Денег: '+money.toLocaleString('ru')+'₽<br>'+
+    '❤️ Отношения: '+rel+'%<br>'+
+    '🧠 Репутация: '+rep+'<br>'+
+    '🏆 Ход: '+G.turn+' (День '+G.day+')';
+  document.getElementById('goScreen').classList.add('active');
 }
 
 // ── Dialog system ─────────────────────────────────────────────────────────────
