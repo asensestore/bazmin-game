@@ -245,6 +245,8 @@ canvas{display:block;touch-action:none}
   <div id="aptTitle">🏠 Твоя квартира</div>
   <div id="aptLevelLabel" style="text-align:center;font-size:10px;color:#aaa"></div>
   <div id="aptGrid"></div>
+  <div style="font-size:11px;font-weight:700;color:#4fc3f7;margin-top:8px">🃏 Карточки (<span id="cardCountLbl">0</span>)</div>
+  <div id="cardList" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
   <div style="font-size:11px;font-weight:700;color:#ff6b9d;margin-top:8px">👥 Помощники</div>
   <div id="unitList"></div>
   <button class="btn" onclick="closeApt()" style="margin-top:8px;align-self:center">← На карту</button>
@@ -1373,6 +1375,23 @@ function openApt(){
     if(nextLvl)div.onclick=()=>buyRoom(room.id,lvl,nextLvl);
     grid.appendChild(div);
   });
+  // Card collection display
+  const cl=document.getElementById('cardList');
+  const ccLbl=document.getElementById('cardCountLbl');
+  if(cl){
+    cl.innerHTML='';
+    const uniqueCards=[...new Set(G.cards)];
+    if(ccLbl)ccLbl.textContent=uniqueCards.length;
+    uniqueCards.forEach(id=>{
+      const card=ALL_CARDS[id];if(!card)return;
+      const typeColors={attention:'#4fc3f7',mood:'#ffb74d',affection:'#f48fb1',romance:'#e91e63',luxury:'#ffd740',status:'#9c27b0',experience:'#69f0ae',generic:'#aaa',sweet:'#ff80ab',trust:'#81c784'};
+      const tc=typeColors[card.type]||'#aaa';
+      const span=document.createElement('div');
+      span.style.cssText=`display:flex;flex-direction:column;align-items:center;background:rgba(15,15,35,.9);border:1px solid ${tc}44;border-radius:8px;padding:6px 8px;min-width:50px;font-size:9px;text-align:center`;
+      span.innerHTML=`<span style="font-size:18px">${card.emoji}</span><span style="color:${tc};font-size:8px">${card.name}</span><span style="color:#888;font-size:7px">${card.power}⚡</span>`;
+      cl.appendChild(span);
+    });
+  }
   const ul=document.getElementById('unitList');ul.innerHTML='';
   UNITS_DEF.forEach(u=>{
     const owned=G.units.includes(u.id);
